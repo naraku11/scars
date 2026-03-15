@@ -3,37 +3,37 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  avatar        String
-  profileImage  String?
-  status    String   @default("Active")
-  joined    DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String
+  avatar       String
+  profileImage String?  @db.LongText   // base64 image — requires LongText in MySQL
+  status       String   @default("Active")
+  joined       DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   roleId Int
   role   Role @relation(fields: [roleId], references: [id])
 
   teamMemberships   TeamMember[]
-  reportedIncidents Incident[]   @relation("ReportedBy")
+  reportedIncidents Incident[]     @relation("ReportedBy")
   sentNotifications Notification[]
 }
 
 model Role {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique
+  id          Int    @id @default(autoincrement())
+  name        String @unique
   description String
-  color       String  @default("#2E7D32")
-  level       Int     @default(99)
-  permissions Json    // { incidents, response, notifications, reports, admin }
+  color       String @default("#2E7D32")
+  level       Int    @default(99)
+  permissions Json   // { incidents, response, notifications, reports, admin }
 
   users User[]
 }
@@ -64,7 +64,7 @@ model Incident {
   type        String
   priority    String
   location    String
-  description String
+  description String   @db.Text          // longer free-text field
   status      String   @default("Open")
   validated   Boolean  @default(false)
   verified    Boolean  @default(false)
@@ -83,7 +83,7 @@ model Notification {
   id      Int      @id @default(autoincrement())
   type    String
   title   String
-  message String
+  message String   @db.Text             // longer free-text field
   target  String
   status  String   @default("Sent")
   sentAt  DateTime @default(now())
@@ -104,10 +104,10 @@ model BackupConfig {
 
 model SystemConfig {
   id             Int    @id @default(1)
-  siteName       String @default("UV Toledo Campus — SCARS")
+  siteName       String @default("UV Toledo Campus \u2014 SCARS")
   timezone       String @default("UTC+8")
   sessionTimeout Int    @default(30)
   maxFileSize    Int    @default(10)
   alertEmail     String @default("admin@uv.edu.ph")
-  logoImage      String @default("")
+  logoImage      String @default("") @db.LongText  // base64 image — requires LongText in MySQL
 }

@@ -17,6 +17,7 @@ A real-time campus safety and incident management web application for the **Univ
 - [API Reference](#api-reference)
 - [Real-time Events](#real-time-events)
 - [Pages Overview](#pages-overview)
+- [Deployment — Hostinger Business](#deployment--hostinger-business)
 
 ---
 
@@ -25,12 +26,12 @@ A real-time campus safety and incident management web application for the **Univ
 | Layer | Technology |
 |---|---|
 | Frontend | React 18, React Router v6, Recharts |
-| Backend | Express.js (Node.js, ESM) |
-| Database | PostgreSQL + Prisma ORM |
-| Real-time | Socket.io |
+| Backend | Express.js (Node.js 18+, ESM) |
+| Database | MySQL 8+ via Prisma ORM |
+| Real-time | Socket.io 4 |
 | Auth | JWT (jsonwebtoken) + bcryptjs |
-| Build | Vite |
-| Dev | Nodemon, Concurrently |
+| Build | Vite 5 |
+| Dev tools | Nodemon, Concurrently |
 | Icons | Lucide React |
 
 ---
@@ -40,11 +41,14 @@ A real-time campus safety and incident management web application for the **Univ
 - **Role-based dashboards** — each role gets its own tailored UI (Admin, Officer, Responder, Student)
 - **Real-time updates** — Socket.io broadcasts all data mutations instantly to every connected client
 - **Incident lifecycle** — report → validate → verify → assign team → resolve
-- **Multi-channel notifications** — send Web Push / SMS / Email alerts to specific role groups
-- **Profile photo verification** — optional Face++ API integration checks that uploaded profile photos contain a real face
+- **Multi-channel notifications** — send alerts to specific role groups; bell panel is filtered per role
+- **Profile management** — editable name, email, password, and profile photo with optional Face++ face verification
+- **Dynamic branding** — admin can upload a custom logo and site name; updates favicon, browser tab title, sidebar, login page, and loading screen live
 - **Reporting & analytics** — bar, pie, and line charts with CSV export
-- **Smooth animations** — page transitions, loading splash screen, and UI micro-animations
-- **Responsive** — works on desktop and mobile
+- **Smooth animations** — page transitions, branded loading splash screen, and UI micro-animations
+- **Responsive / swipable** — works on desktop and mobile; sidebar slides in on small screens
+- **Protected admin rows** — the Admin account cannot be edited or deleted from User Management
+- **Production-ready** — single Express process serves both the API and the React build; offline mock fallback when API is unavailable
 
 ---
 
@@ -59,7 +63,7 @@ Four roles in hierarchical order (lower level = higher authority):
 | Responder | 3 | `/responder` | ✓ | ✓ | ✓ | — | — |
 | Student | 4 | `/student` | ✓ (report only) | — | — | — | — |
 
-Notification targeting is role-aware — each user's bell only shows alerts addressed to their role or `All`.
+Login automatically redirects each role to their dashboard. The notification bell only shows alerts addressed to the user's role or `All`.
 
 ---
 
@@ -68,7 +72,7 @@ Notification targeting is role-aware — each user's bell only shows alerts addr
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL 14+
+- MySQL 8+
 
 ### Installation
 
@@ -77,40 +81,42 @@ Notification targeting is role-aware — each user's bell only shows alerts addr
 git clone <repo-url>
 cd scars
 
-# 2. Install dependencies
+# 2. Install dependencies (also runs prisma generate via postinstall)
 npm install
 
 # 3. Configure environment
 cp .env.example .env
-# Edit .env with your database credentials and JWT secret
+# Edit .env — set DATABASE_URL, JWT_SECRET, and optionally FACEPP keys
 
-# 4. Push schema to database
+# 4. Push schema to database and seed
 npm run db:push
-
-# 5. Seed initial data
 npm run db:seed
 
-# 6. Start development (frontend + backend)
+# 5. Start development (frontend + backend)
 npm run dev:full
 ```
 
-The app will be available at **http://localhost:5173** and the API at **http://localhost:3001**.
+The frontend runs at **http://localhost:5173** and the API at **http://localhost:3001**.
 
 ---
 
 ## Environment Variables
 
-Create a `.env` file in the project root:
+Copy `.env.example` to `.env` and fill in the values:
 
 ```env
-# PostgreSQL connection string
-DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/scars_db"
+# MySQL connection string
+DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/scars_db"
 
-# JWT signing secret — change this in production
+# JWT signing secret — use a long random string in production
+# Generate one: openssl rand -hex 32
 JWT_SECRET="your-secret-key-here"
 
-# Express server port
+# Express server port (Hostinger sets this automatically)
 PORT=3001
+
+# Set to "production" when deploying
+NODE_ENV=production
 
 # Face++ API for profile photo face detection (optional)
 # Sign up at https://www.faceplusplus.com/ — free tier available
@@ -123,22 +129,22 @@ FACEPP_API_SECRET=
 
 ## Database Setup
 
-The project uses **Prisma** with PostgreSQL.
+The project uses **Prisma ORM** with **MySQL 8+**.
 
 ```bash
-# Apply schema changes to the database
+# Apply schema to database (no migration file created)
 npm run db:push
 
-# Create a named migration (recommended for production)
+# Create and apply a named migration (recommended for production)
 npm run db:migrate
 
 # Seed the database with default roles, teams, and users
 npm run db:seed
 
-# Open Prisma Studio (database GUI)
+# Open Prisma Studio (visual database GUI)
 npm run db:studio
 
-# Reset database (drops all data and re-migrates)
+# Reset database — drops all data and re-migrates
 npm run db:reset
 ```
 
@@ -151,7 +157,7 @@ npm run db:reset
 | Responder | responder@uv.edu.ph | resp123 |
 | Student | ana.santos@uv.edu.ph | student123 |
 
-> ⚠️ Change all passwords before deploying to production.
+> **Change all passwords before deploying to production.**
 
 ---
 
@@ -163,12 +169,14 @@ npm run db:reset
 | `npm run server` | Start Express API server |
 | `npm run server:dev` | Start Express with auto-restart (nodemon) |
 | `npm run dev:full` | Start both frontend and backend concurrently |
-| `npm run build` | Build frontend for production |
-| `npm run preview` | Preview the production build |
-| `npm run db:push` | Sync Prisma schema to database (no migration) |
+| `npm run build` | Build React frontend → `dist/` |
+| `npm run build:prod` | Build frontend + regenerate Prisma client |
+| `npm start` | Start production server (serves API + built frontend) |
+| `npm run preview` | Preview production build locally |
+| `npm run db:push` | Sync Prisma schema → database (no migration file) |
 | `npm run db:migrate` | Create and apply a named migration |
 | `npm run db:seed` | Seed database with initial data |
-| `npm run db:reset` | Reset database and re-migrate |
+| `npm run db:reset` | Drop all data and re-migrate |
 | `npm run db:studio` | Open Prisma Studio GUI |
 
 ---
@@ -178,51 +186,54 @@ npm run db:reset
 ```
 scars/
 ├── prisma/
-│   ├── schema.prisma        # Database schema
-│   └── seed.js              # Seed script
+│   ├── schema.prisma          # Database schema — User, Role, Team, Incident, Notification, SystemConfig
+│   └── seed.js                # Seed script — default roles, teams, and users
 ├── server/
-│   ├── index.js             # Express + Socket.io entry point
+│   ├── index.js               # Express + Socket.io entry; serves React build in production
 │   ├── lib/
-│   │   ├── prisma.js        # Prisma client singleton
-│   │   └── socket.js        # Socket.io shared emit helper
+│   │   ├── prisma.js          # Prisma client singleton
+│   │   └── socket.js          # Shared emit helper (avoids circular imports)
 │   ├── middleware/
-│   │   └── auth.js          # JWT authentication middleware
+│   │   └── auth.js            # JWT authentication middleware
 │   └── routes/
-│       ├── auth.js          # Login, /me
-│       ├── users.js         # User CRUD
-│       ├── roles.js         # Role CRUD
-│       ├── teams.js         # Team CRUD
-│       ├── incidents.js     # Incident CRUD + validate/verify/assign
-│       ├── notifications.js # Notification CRUD
-│       ├── admin.js         # System & backup config
-│       └── profile.js       # Profile update + face verification
+│       ├── auth.js            # POST /login, GET /me
+│       ├── users.js           # User CRUD
+│       ├── roles.js           # Role CRUD
+│       ├── teams.js           # Team CRUD
+│       ├── incidents.js       # Incident CRUD + validate / verify / assign
+│       ├── notifications.js   # Notification CRUD
+│       ├── admin.js           # System config (logo, site name) + backup config
+│       └── profile.js         # Profile update + Face++ face verification
 ├── src/
 │   ├── components/
-│   │   ├── Header.jsx       # Top bar with functional notification bell
-│   │   ├── Sidebar.jsx      # Role-based navigation
-│   │   ├── Layout.jsx       # App shell with page transitions
-│   │   └── LoadingScreen.jsx# Branded splash screen
+│   │   ├── Header.jsx         # Top bar — notification bell, mobile logo badge
+│   │   ├── Sidebar.jsx        # Role-based navigation; logo + site name from systemConfig
+│   │   ├── Layout.jsx         # App shell with page-enter animation
+│   │   ├── LoadingScreen.jsx  # Branded splash screen; reads logo/name from localStorage
+│   │   └── BrandingManager.jsx# Invisible — keeps favicon + document.title in sync
 │   ├── context/
-│   │   └── AppContext.jsx   # Global state + Socket.io client
+│   │   └── AppContext.jsx     # Global state, auth, all CRUD actions, Socket.io listeners
 │   ├── pages/
-│   │   ├── Login.jsx
-│   │   ├── Dashboard.jsx          # Admin dashboard
-│   │   ├── OfficerDashboard.jsx   # Officer control panel
-│   │   ├── ResponderDashboard.jsx # Responder panel
-│   │   ├── StudentDashboard.jsx   # Student report portal
-│   │   ├── Profile.jsx            # Profile with photo + face verify
-│   │   ├── UserManagement.jsx
-│   │   ├── IncidentManagement.jsx
-│   │   ├── ResponseManagement.jsx
-│   │   ├── NotificationSystem.jsx
-│   │   ├── ReportingAnalytics.jsx
-│   │   └── SystemAdmin.jsx
+│   │   ├── Login.jsx                # Role-based redirect; logo + site name from localStorage
+│   │   ├── Dashboard.jsx            # Admin overview — stat cards, quick actions, incident table
+│   │   ├── OfficerDashboard.jsx     # Officer panel — validate/verify/assign, team status, alerts
+│   │   ├── ResponderDashboard.jsx   # Responder panel — my team, incidents, campus alerts
+│   │   ├── StudentDashboard.jsx     # Student portal — report form, my reports, emergency contacts
+│   │   ├── Profile.jsx              # Editable profile with photo upload + face verification
+│   │   ├── UserManagement.jsx       # User CRUD (admin row protected — no edit/delete)
+│   │   ├── IncidentManagement.jsx   # Admin incident table with stats, filters, inline actions
+│   │   ├── ResponseManagement.jsx   # Team management and response coordination
+│   │   ├── NotificationSystem.jsx   # Compose and send role-targeted alerts
+│   │   ├── ReportingAnalytics.jsx   # Charts and CSV export
+│   │   └── SystemAdmin.jsx          # Role permissions + general settings (logo, site name)
 │   ├── services/
-│   │   └── api.js           # Fetch-based API client
+│   │   └── api.js             # Fetch-based API client (auth, users, incidents, profile, admin)
 │   └── data/
-│       └── mockData.js      # Offline fallback data
-├── .env
-├── vite.config.js
+│       └── mockData.js        # Offline fallback — app works without a running API
+├── .env                       # Local secrets (never commit)
+├── .env.example               # Template for all environment variables
+├── .gitignore
+├── vite.config.js             # Vite config + dev proxy for /api and /socket.io
 └── package.json
 ```
 
@@ -230,13 +241,13 @@ scars/
 
 ## API Reference
 
-All protected endpoints require `Authorization: Bearer <token>` header.
+All protected endpoints require an `Authorization: Bearer <token>` header.
 
 ### Authentication
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/auth/login` | Login, returns `{ token, user }` |
+| POST | `/api/auth/login` | Login — returns `{ token, user }` |
 | GET | `/api/auth/me` | Get current user from token |
 
 ### Users
@@ -259,7 +270,7 @@ All protected endpoints require `Authorization: Bearer <token>` header.
 | DELETE | `/api/incidents/:id` | Delete incident |
 | PATCH | `/api/incidents/:id/validate` | Mark as validated |
 | PATCH | `/api/incidents/:id/verify` | Mark as verified |
-| PATCH | `/api/incidents/:id/assign` | Assign to team |
+| PATCH | `/api/incidents/:id/assign` | Assign to a response team |
 
 ### Notifications
 
@@ -283,28 +294,31 @@ All protected endpoints require `Authorization: Bearer <token>` header.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/roles` | List roles ordered by level |
-| PUT | `/api/roles/:id` | Update role permissions |
+| PUT | `/api/roles/:id` | Update role name, description, and permissions |
 
 ### Profile
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/profile` | Get current user profile |
-| PUT | `/api/profile` | Update name, email, password, photo |
-| POST | `/api/profile/verify-face` | Verify profile image has a real face |
+| GET | `/api/profile` | Get current user's full profile |
+| PUT | `/api/profile` | Update name, email, password, or profile photo |
+| POST | `/api/profile/verify-face` | Verify an image contains a real human face (Face++ API) |
 
 ### Admin
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/admin/system-config` | Get system settings |
-| PUT | `/api/admin/system-config` | Update system settings |
+| GET | `/api/admin/system-config` | Get system settings (name, logo, timezone, etc.) |
+| PUT | `/api/admin/system-config` | Update system settings including logo image |
+| GET | `/api/admin/backup-config` | Get backup settings |
+| PUT | `/api/admin/backup-config` | Update backup settings |
+| GET | `/api/health` | Health check — returns `{ ok, time }` |
 
 ---
 
 ## Real-time Events
 
-The server emits Socket.io events after every mutation. The frontend AppContext listens and patches state immediately.
+The server emits Socket.io events after every mutation. The frontend `AppContext` listens and patches state instantly — no polling required.
 
 | Event | Payload | Trigger |
 |---|---|---|
@@ -325,20 +339,138 @@ The server emits Socket.io events after every mutation. The frontend AppContext 
 
 ## Pages Overview
 
-| Page | Route | Roles |
+| Page | Route | Access |
 |---|---|---|
 | Login | `/` | Public |
 | Admin Dashboard | `/dashboard` | Admin |
 | Officer Dashboard | `/officer` | Officer |
 | Responder Dashboard | `/responder` | Responder |
 | Student Dashboard | `/student` | Student |
-| My Profile | `/profile` | All |
+| My Profile | `/profile` | All roles |
 | User Management | `/users` | Admin |
 | Incident Management | `/incidents` | Admin, Officer |
 | Response Management | `/response` | Admin, Officer, Responder |
 | Notification System | `/notifications` | Admin, Responder |
 | Reporting & Analytics | `/reports` | Admin, Officer |
 | System Administration | `/admin` | Admin |
+
+---
+
+## Deployment — Hostinger Business
+
+Hostinger Business provides **MySQL** and manages Node.js apps through **hPanel** — no manual Nginx or process manager needed. In production, a single Express server handles both the API (`/api/*`) and the compiled React frontend (`dist/`).
+
+---
+
+### Step 1 — Create a MySQL database
+
+1. Log in to **hPanel** → **Databases** → **MySQL Databases**
+2. Create a new database, a database user, and assign the user full privileges on that database
+3. Note the **database name**, **username**, **password**, and **host** (shown at the bottom — usually `localhost`)
+
+---
+
+### Step 2 — Upload the project
+
+**Option A — Git (recommended)**
+
+Open the **hPanel Terminal** or connect via SSH:
+
+```bash
+cd ~/domains/your-domain.com/public_html   # adjust path as needed
+git clone <repo-url> scars
+cd scars
+```
+
+**Option B — File Manager**
+
+Zip the project locally (exclude `node_modules/` and `dist/`), upload via **hPanel → File Manager**, then extract into your chosen directory.
+
+---
+
+### Step 3 — Create the Node.js application
+
+1. Go to **hPanel** → **Advanced** → **Node.js**
+2. Click **Create Application** and fill in:
+
+| Setting | Value |
+|---|---|
+| Node.js version | `20.x` (latest LTS) |
+| Application mode | `Production` |
+| Application root | path to the `scars` folder (e.g. `/home/u123456789/domains/your-domain.com/scars`) |
+| Application URL | `your-domain.com` |
+| Application startup file | `server/index.js` |
+
+3. Add **Environment Variables**:
+
+| Key | Value |
+|---|---|
+| `DATABASE_URL` | `mysql://DB_USER:DB_PASSWORD@localhost:3306/DB_NAME` |
+| `JWT_SECRET` | a long random string (e.g. output of `openssl rand -hex 32`) |
+| `NODE_ENV` | `production` |
+| `PORT` | `3001` |
+| `FACEPP_API_KEY` | *(optional — leave blank to skip face verification)* |
+| `FACEPP_API_SECRET` | *(optional)* |
+
+4. Click **Create** — Hostinger sets up the reverse proxy automatically
+
+---
+
+### Step 4 — Install, build, and migrate
+
+In the **Terminal** tab inside the Node.js app panel (or via SSH):
+
+```bash
+cd ~/domains/your-domain.com/scars
+
+# Install packages (postinstall runs prisma generate automatically)
+npm install
+
+# Build the React frontend → dist/
+npm run build
+
+# Create all MySQL tables from the Prisma schema
+npx prisma db push
+
+# Seed initial roles, teams, and default accounts
+node prisma/seed.js
+```
+
+---
+
+### Step 5 — Start the application
+
+In **hPanel → Node.js**, click **Restart** (or **Start**) on your app entry. Hostinger manages the process automatically.
+
+- Open `your-domain.com` to see the login page
+- Open `your-domain.com/api/health` to confirm the API is responding
+
+---
+
+### Updating after code changes
+
+```bash
+cd ~/domains/your-domain.com/scars
+git pull
+npm install
+npm run build
+npx prisma db push    # only needed if schema changed
+```
+
+Then go to **hPanel → Node.js** and click **Restart**.
+
+---
+
+### Default seed accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@uv.edu.ph | admin123 |
+| Officer | officer@uv.edu.ph | off123 |
+| Responder | responder@uv.edu.ph | resp123 |
+| Student | ana.santos@uv.edu.ph | student123 |
+
+> **Change all passwords immediately after first login.**
 
 ---
 
