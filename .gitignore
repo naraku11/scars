@@ -3,6 +3,7 @@ node_modules/
 
 # Build output (generated on server via npm run build)
 dist/
+public/
 
 # Environment — never commit real secrets
 .env

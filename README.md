@@ -423,23 +423,19 @@ In the **Terminal** tab inside the Node.js app panel (or via SSH):
 ```bash
 cd ~/domains/uv-scars.com/scars
 
-# Install packages (postinstall runs prisma generate automatically)
+# 1. Install packages and regenerate Prisma for Linux
 npm install
+npx prisma generate
 
-# Build the React frontend → dist/
-npm run build
-
-# Copy the built frontend into the domain's public_html so Apache serves it
-cp -r dist/. ~/domains/uv-scars.com/public_html/
-
-# Create all MySQL tables from the Prisma schema
+# 2. Push the schema to MySQL (creates all tables)
 npx prisma db push
 
-# Seed initial roles, teams, and default accounts
+# 3. Seed initial roles, teams, and default accounts
 node prisma/seed.js
-```
 
-> **Why copy to public_html?** Hostinger's Apache web server serves static files directly from `public_html/`. The built `dist/` folder includes a `.htaccess` that handles SPA routing (so `/dashboard`, `/officer`, etc. don't 404 on refresh) and proxies all `/api/*` and `/socket.io/*` requests to the Node.js backend on port 3001.
+# 4. Build the React frontend → public/  (Hostinger reads output from public/)
+npm run build
+```
 
 ---
 
@@ -459,9 +455,9 @@ In **hPanel → Node.js**, click **Restart** (or **Start**) on your app entry. H
 cd ~/domains/uv-scars.com/scars
 git pull
 npm install
+npx prisma generate
+npx prisma db push      # only if schema changed
 npm run build
-cp -r dist/. ~/domains/uv-scars.com/public_html/
-npx prisma db push    # only needed if schema changed
 ```
 
 Then go to **hPanel → Node.js** and click **Restart**.

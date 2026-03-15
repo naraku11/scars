@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Proxy API and Socket.io calls to the Node.js backend on port 3001
+  <IfModule mod_proxy_http.c>
+    RewriteCond %{REQUEST_URI} ^/(api|socket\.io)/ [NC]
+    RewriteRule ^(.*)$ http://127.0.0.1:3001/$1 [P,L,QSA]
+  </IfModule>
+
+  # SPA routing — serve index.html for every route that is not a real file/folder
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>

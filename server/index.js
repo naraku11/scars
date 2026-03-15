@@ -42,7 +42,7 @@ app.use('/api/profile',       profileRoutes)
 app.get('/api/health', (_, res) => res.json({ ok: true, time: new Date().toISOString() }))
 
 // ── Serve React build (production) ───────────────────────────────────────────
-const distPath  = join(__dirname, '../dist')
+const distPath  = join(__dirname, '../public')
 const indexPath = join(distPath, 'index.html')
 
 if (existsSync(distPath)) {
@@ -75,4 +75,14 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => console.log(`🔌 Client disconnected: ${socket.id}`))
 })
 
-httpServer.listen(PORT, () => console.log(`🚀 SCARS API running on http://localhost:${PORT}`))
+httpServer.listen(PORT, () => {
+  console.log(`🚀 SCARS API running on port ${PORT}`)
+  console.log(`   NODE_ENV : ${process.env.NODE_ENV || 'development'}`)
+  console.log(`   DB URL   : ${process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':***@') : 'NOT SET'}`)
+  console.log(`   dist/    : ${existsSync(join(__dirname, '../dist')) ? 'found' : 'MISSING — run npm run build'}`)
+})
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err)
+  process.exit(1)
+})
