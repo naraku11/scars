@@ -358,15 +358,25 @@ The server emits Socket.io events after every mutation. The frontend `AppContext
 
 ## Deployment — Hostinger Business
 
-Hostinger Business provides **MySQL** and manages Node.js apps through **hPanel** — no manual Nginx or process manager needed. In production, a single Express server handles both the API (`/api/*`) and the compiled React frontend (`dist/`).
+Hostinger Business provides **MySQL** and manages Node.js apps through **hPanel** — no manual Nginx or process manager needed.
+
+**How it works in production:**
+- Vite builds the React app into `public/` (Hostinger reads output from there)
+- `static/.htaccess` is auto-copied into `public/` during build — it handles SPA routing so `/dashboard`, `/officer`, etc. never 404 on refresh
+- Express serves the API (`/api/*`, `/socket.io/*`) on port 3001; Apache proxies those paths via the `.htaccess` rules
+
+**Live URL:** https://uv-scars.com
 
 ---
 
-### Step 1 — Create a MySQL database
+### Step 1 — MySQL database (already created)
 
-1. Log in to **hPanel** → **Databases** → **MySQL Databases**
-2. Create a new database, a database user, and assign the user full privileges on that database
-3. Note the **database name**, **username**, **password**, and **host** (shown at the bottom — usually `localhost`)
+| Field | Value |
+|---|---|
+| Database | `u856082912_scars_db` |
+| User | `u856082912_scars` |
+| Host | `localhost` |
+| Port | `3306` |
 
 ---
 
@@ -374,78 +384,82 @@ Hostinger Business provides **MySQL** and manages Node.js apps through **hPanel*
 
 **Option A — Git (recommended)**
 
-Open the **hPanel Terminal** or connect via SSH:
+Open **hPanel → Advanced → SSH Access** or use the built-in Terminal:
 
 ```bash
-cd ~/domains/uv-scars.com/public_html   # adjust path as needed
+cd ~/domains/uv-scars.com
 git clone <repo-url> scars
 cd scars
 ```
 
 **Option B — File Manager**
 
-Zip the project locally (exclude `node_modules/` and `dist/`), upload via **hPanel → File Manager**, then extract into your chosen directory.
+Zip the project locally (exclude `node_modules/` and `public/`), upload via **hPanel → File Manager**, then extract into `~/domains/uv-scars.com/scars/`.
 
 ---
 
 ### Step 3 — Create the Node.js application
 
-1. Go to **hPanel** → **Advanced** → **Node.js**
+1. Go to **hPanel → Advanced → Node.js**
 2. Click **Create Application** and fill in:
 
 | Setting | Value |
 |---|---|
-| Node.js version | `20.x` (latest LTS) |
+| Node.js version | `20.x` (LTS) |
 | Application mode | `Production` |
-| Application root | path to the `scars` folder (e.g. `/home/u123456789/domains/uv-scars.com/scars`) |
-| Application URL | `https://uv-scars.com` |
+| Application root | `~/domains/uv-scars.com/scars` |
+| Application URL | `uv-scars.com` |
 | Application startup file | `server/index.js` |
 
-3. Add **Environment Variables**:
+3. Add **Environment Variables** in the same form:
 
 | Key | Value |
 |---|---|
-| `DATABASE_URL` | `mysql://u856082912_scars:YOUR_PASSWORD@localhost:3306/u856082912_scars_db` |
-| `JWT_SECRET` | a long random string (e.g. output of `openssl rand -hex 32`) |
+| `DATABASE_URL` | `mysql://u856082912_scars:YOUR_DB_PASSWORD@localhost:3306/u856082912_scars_db` |
+| `JWT_SECRET` | long random string — generate with `openssl rand -hex 32` |
 | `NODE_ENV` | `production` |
 | `PORT` | `3001` |
-| `FACEPP_API_KEY` | *(optional — leave blank to skip face verification)* |
+| `FRONTEND_URL` | `https://uv-scars.com` |
+| `FACEPP_API_KEY` | *(optional)* |
 | `FACEPP_API_SECRET` | *(optional)* |
 
-4. Click **Create** — Hostinger sets up the reverse proxy automatically
+4. Click **Create** — Hostinger configures the reverse proxy automatically
 
 ---
 
-### Step 4 — Install, build, and migrate
+### Step 4 — Install, migrate, seed, and build
 
-In the **Terminal** tab inside the Node.js app panel (or via SSH):
+In the **Terminal** tab of the Node.js app panel (or via SSH):
 
 ```bash
 cd ~/domains/uv-scars.com/scars
 
-# 1. Install packages and regenerate Prisma for Linux
+# 1. Install dependencies and generate Prisma client for Linux
 npm install
 npx prisma generate
 
-# 2. Push the schema to MySQL (creates all tables)
+# 2. Create all MySQL tables
 npx prisma db push
 
-# 3. Seed initial roles, teams, and default accounts
+# 3. Seed default roles, teams, and accounts
 node prisma/seed.js
 
-# 4. Build the React frontend → public/  (Hostinger reads output from public/)
+# 4. Build the React frontend → public/
 npm run build
 ```
 
+> `npm run build` outputs directly to `public/` — no manual file copying needed.
+
 ---
 
-### Step 5 — Start the application
+### Step 5 — Start the app
 
-In **hPanel → Node.js**, click **Restart** (or **Start**) on your app entry. Hostinger manages the process automatically.
+In **hPanel → Node.js**, click **Restart** (or **Start**) on the `scars` entry.
 
-- Open `uv-scars.com` to see the login page
-- Open `uv-scars.com/api/health` to confirm the API is responding
-- Refreshing any page (e.g. `/dashboard`) should work without a 404
+Verify:
+- `https://uv-scars.com` → login page
+- `https://uv-scars.com/api/health` → `{ "ok": true }`
+- Refreshing `https://uv-scars.com/dashboard` → no 404
 
 ---
 
@@ -456,11 +470,11 @@ cd ~/domains/uv-scars.com/scars
 git pull
 npm install
 npx prisma generate
-npx prisma db push      # only if schema changed
+npx prisma db push    # only if schema changed
 npm run build
 ```
 
-Then go to **hPanel → Node.js** and click **Restart**.
+Then **hPanel → Node.js → Restart**.
 
 ---
 
