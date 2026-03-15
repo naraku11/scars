@@ -1,0 +1,20 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # ── Proxy API and Socket.io to the Node.js backend ──────────────────────────
+  # Requires mod_proxy_http (enabled on Hostinger Business).
+  # Replace 3001 with the port shown in hPanel → Node.js if different.
+  <IfModule mod_proxy_http.c>
+    RewriteCond %{REQUEST_URI} ^/api/ [OR]
+    RewriteCond %{REQUEST_URI} ^/socket.io/
+    RewriteRule ^(.*)$ http://127.0.0.1:3001/$1 [P,L,QSA]
+  </IfModule>
+
+  # ── SPA routing ──────────────────────────────────────────────────────────────
+  # Serve index.html for every route that isn't a real file or directory.
+  # This lets React Router handle /dashboard, /officer, /student, etc.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>

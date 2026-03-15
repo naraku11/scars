@@ -429,12 +429,17 @@ npm install
 # Build the React frontend → dist/
 npm run build
 
+# Copy the built frontend into the domain's public_html so Apache serves it
+cp -r dist/. ~/domains/your-domain.com/public_html/
+
 # Create all MySQL tables from the Prisma schema
 npx prisma db push
 
 # Seed initial roles, teams, and default accounts
 node prisma/seed.js
 ```
+
+> **Why copy to public_html?** Hostinger's Apache web server serves static files directly from `public_html/`. The built `dist/` folder includes a `.htaccess` that handles SPA routing (so `/dashboard`, `/officer`, etc. don't 404 on refresh) and proxies all `/api/*` and `/socket.io/*` requests to the Node.js backend on port 3001.
 
 ---
 
@@ -444,6 +449,7 @@ In **hPanel → Node.js**, click **Restart** (or **Start**) on your app entry. H
 
 - Open `your-domain.com` to see the login page
 - Open `your-domain.com/api/health` to confirm the API is responding
+- Refreshing any page (e.g. `/dashboard`) should work without a 404
 
 ---
 
@@ -454,6 +460,7 @@ cd ~/domains/your-domain.com/scars
 git pull
 npm install
 npm run build
+cp -r dist/. ~/domains/your-domain.com/public_html/
 npx prisma db push    # only needed if schema changed
 ```
 

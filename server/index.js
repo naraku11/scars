@@ -40,14 +40,23 @@ app.use('/api/profile',       profileRoutes)
 app.get('/api/health', (_, res) => res.json({ ok: true, time: new Date().toISOString() }))
 
 // ── Serve React build (production) ───────────────────────────────────────────
-const distPath = join(__dirname, '../dist')
+const distPath  = join(__dirname, '../dist')
+const indexPath = join(distPath, 'index.html')
+
 if (existsSync(distPath)) {
   app.use(express.static(distPath))
-  // SPA fallback — any non-API route returns index.html
-  app.get('*', (req, res) => {
-    res.sendFile(join(distPath, 'index.html'))
-  })
 }
+
+// SPA fallback — always registered so direct URL access never hits Express 404
+app.get('*', (req, res) => {
+  if (existsSync(indexPath)) {
+    res.sendFile(indexPath)
+  } else {
+    res.status(503).send(
+      'Frontend not built. Run <code>npm run build</code> then restart the server.'
+    )
+  }
+})
 
 const httpServer = createServer(app)
 
