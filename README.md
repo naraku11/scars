@@ -405,7 +405,7 @@ Zip the project locally (exclude `node_modules/` and `dist/`), upload via **hPan
 
 | Key | Value |
 |---|---|
-| `DATABASE_URL` | `mysql://DB_USER:DB_PASSWORD@localhost:3306/DB_NAME` |
+| `DATABASE_URL` | `mysql://u856082912_scars:YOUR_PASSWORD@localhost:3306/u856082912_scars_db` |
 | `JWT_SECRET` | a long random string (e.g. output of `openssl rand -hex 32`) |
 | `NODE_ENV` | `production` |
 | `PORT` | `3001` |
