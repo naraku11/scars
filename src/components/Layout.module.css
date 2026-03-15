@@ -1,0 +1,58 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f0f4f8;
+  position: relative;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  min-width: 0;
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99;
+}
+
+@media (max-width: 768px) {
+  .overlay { display: block; }
+
+  /* Swipe edge handle — subtle left-side affordance */
+  .main::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 48px;
+    background: rgba(46, 125, 50, 0.25);
+    border-radius: 0 4px 4px 0;
+    z-index: 10;
+    pointer-events: none;
+  }
+}
+
+/* Page-enter transition — triggered by key change on location */
+.pageEnter {
+  display: contents;
+  animation: page-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

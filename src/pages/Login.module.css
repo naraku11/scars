@@ -1,0 +1,231 @@
+/* UV Toledo — Login Page */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  background: #F1F8F2;
+  animation: page-fade 0.4s ease both;
+}
+
+@keyframes page-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Left branding panel ── */
+.brandPanel {
+  width: 42%;
+  background: linear-gradient(160deg, #1B5E20 0%, #2E7D32 50%, #388E3C 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: brand-enter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes brand-enter {
+  from { opacity: 0; transform: translateX(-30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* decorative circles */
+.brandPanel::before, .brandPanel::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+}
+.brandPanel::before { width: 360px; height: 360px; top: -100px; left: -100px; }
+.brandPanel::after  { width: 280px; height: 280px; bottom: -60px; right: -80px; }
+
+.seal {
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  border: 3px solid #C9A227;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+  position: relative; z-index: 1;
+  overflow: hidden;
+}
+
+.sealImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.uniName {
+  font-size: 22px; font-weight: 800; color: #fff;
+  line-height: 1.2; position: relative; z-index: 1;
+}
+
+.campusName {
+  font-size: 15px; font-weight: 600; color: #C9A227;
+  margin-top: 4px; letter-spacing: 1px;
+  position: relative; z-index: 1;
+}
+
+.divider {
+  width: 60px; height: 2px;
+  background: #C9A227;
+  margin: 20px auto;
+  position: relative; z-index: 1;
+}
+
+.sysName {
+  font-size: 13px; color: #A5D6A7;
+  line-height: 1.5; max-width: 240px;
+  position: relative; z-index: 1;
+}
+
+.acronym {
+  font-size: 38px; font-weight: 900;
+  color: #fff; letter-spacing: 4px;
+  margin-top: 8px;
+  position: relative; z-index: 1;
+}
+
+.motto {
+  font-size: 12px; color: #81C784;
+  margin-top: 16px; font-style: italic;
+  position: relative; z-index: 1;
+}
+
+/* ── Right form panel ── */
+.formPanel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(27,94,32,0.1);
+  border: 1px solid #C8E6C9;
+  animation: card-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.cardHeader {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 24px;
+}
+
+.cardIcon {
+  width: 50px; height: 50px;
+  background: #1B5E20;
+  color: #C9A227;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.cardLogoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.cardTitle { font-size: 22px; font-weight: 800; color: #1a2e1c; }
+.cardSub { font-size: 12px; color: #4a7a52; margin-top: 2px; }
+
+.error {
+  background: #fee2e2; color: #dc2626;
+  border: 1px solid #fca5a5; border-radius: 6px;
+  padding: 10px 14px; font-size: 13px; margin-bottom: 16px;
+}
+
+.form { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+
+.field label { font-size: 12px; font-weight: 600; color: #1a2e1c; }
+
+.inputWrap { position: relative; }
+.inputIcon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #4a7a52; pointer-events: none; }
+.inputWrap input {
+  width: 100%; padding: 9px 38px 9px 36px;
+  border: 1px solid #C8E6C9; border-radius: 6px;
+  font-size: 13px; outline: none; transition: border-color 0.15s; color: #1a2e1c;
+  background: #fff;
+}
+.inputWrap input:focus { border-color: #2E7D32; }
+
+.showHideBtn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #4a7a52;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  min-height: unset;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.showHideBtn:hover { color: #2E7D32; background: #E8F5E9; }
+
+.submitBtn {
+  background: #2E7D32; color: #fff; border: none; border-radius: 6px;
+  padding: 11px; font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: background 0.15s; margin-top: 4px;
+}
+.submitBtn:hover { background: #1B5E20; }
+.submitBtn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+.demoSection { margin-top: 22px; }
+.demoTitle {
+  font-size: 11px; font-weight: 700; color: #81C784;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  text-align: center; margin-bottom: 10px;
+}
+.demoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.demoBtn {
+  background: #F1F8F2; border: 1px solid #C8E6C9; border-radius: 6px;
+  padding: 8px 10px; text-align: left; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.demoBtn:hover { border-color: #2E7D32; background: #E8F5E9; }
+.demoRole { font-size: 11px; font-weight: 700; color: #2E7D32; }
+.demoEmail { font-size: 10px; color: #4a7a52; }
+
+/* ── Mobile: stack vertically ── */
+@media (max-width: 768px) {
+  .page { flex-direction: column; }
+  .brandPanel {
+    width: 100%; padding: 32px 20px;
+    min-height: unset;
+  }
+  .uniName { font-size: 18px; }
+  .acronym { font-size: 28px; }
+  .seal { width: 72px; height: 72px; }
+  .formPanel { padding: 20px 16px; }
+  .card { padding: 24px 18px; }
+}
+
+@media (max-width: 480px) {
+  .demoGrid { grid-template-columns: 1fr; }
+}

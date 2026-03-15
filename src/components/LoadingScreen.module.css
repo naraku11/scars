@@ -1,0 +1,138 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #145218 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Shield with pulsing rings */
+.shieldWrap {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring, .ring2 {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(201, 162, 39, 0.5);
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.ring2 {
+  inset: -12px;
+  border-color: rgba(201, 162, 39, 0.25);
+  animation-delay: 0.4s;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(1.1); opacity: 0.5; }
+}
+
+.shieldIcon {
+  color: #C9A227;
+  filter: drop-shadow(0 0 12px rgba(201, 162, 39, 0.6));
+  animation: shield-glow 2s ease-in-out infinite;
+}
+
+.logoImg {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid #C9A227;
+  box-shadow: 0 0 20px rgba(201, 162, 39, 0.5);
+  animation: shield-glow 2s ease-in-out infinite;
+}
+
+@keyframes shield-glow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(201, 162, 39, 0.5)); }
+  50%       { filter: drop-shadow(0 0 20px rgba(201, 162, 39, 0.9)); }
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+.sub {
+  font-size: 12px;
+  color: #A5D6A7;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+/* Progress bar */
+.bar {
+  width: 180px;
+  height: 3px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.barFill {
+  height: 100%;
+  background: linear-gradient(90deg, #C9A227, #fff, #C9A227);
+  background-size: 200% 100%;
+  border-radius: 99px;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Bouncing dots */
+.dots {
+  display: flex;
+  gap: 7px;
+}
+
+.dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #C9A227;
+  animation: bounce 1.2s ease-in-out infinite;
+}
+.dots span:nth-child(1) { animation-delay: 0s; }
+.dots span:nth-child(2) { animation-delay: 0.2s; }
+.dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+  40%            { transform: scale(1);   opacity: 1; }
+}

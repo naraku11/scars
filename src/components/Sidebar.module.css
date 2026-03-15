@@ -1,0 +1,196 @@
+/* UV Toledo Campus — Sidebar */
+
+.sidebar {
+  width: 230px;
+  min-width: 230px;
+  background: #1B5E20;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  transition: transform 0.25s ease;
+  z-index: 100;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+  }
+  .open { transform: translateX(0); }
+}
+
+/* ── Logo / Brand strip ── */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 70px;
+  background: #145218;
+  border-bottom: 2px solid #C9A227;
+}
+
+.logoBadge {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #C9A227;
+  color: #1B5E20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 900;
+  overflow: hidden;
+}
+
+.logoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.logoName {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.logoCampus {
+  font-size: 10px;
+  color: #C9A227;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.closeBtn {
+  display: none;
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #81C784;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.closeBtn:hover { color: #fff; }
+
+@media (max-width: 768px) {
+  .closeBtn { display: flex; }
+}
+
+/* ── Navigation ── */
+.nav {
+  flex: 1;
+  padding: 10px 0;
+  overflow-y: auto;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #A5D6A7;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  border-left: 3px solid transparent;
+}
+
+.navItem:hover {
+  background: #2E7D32;
+  color: #fff;
+}
+
+.active {
+  background: #2E7D32;
+  color: #fff;
+  border-left-color: #C9A227;
+}
+
+/* ── User / logout strip ── */
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid #2E7D32;
+  background: #145218;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #C9A227;
+  color: #1B5E20;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.userName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userRole {
+  font-size: 10px;
+  color: #81C784;
+  margin-top: 1px;
+}
+
+.logoutBtn {
+  background: none;
+  border: none;
+  color: #81C784;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  display: flex;
+}
+.logoutBtn:hover { color: #ef4444; }
+
+.avatarPhoto {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #C9A227;
+  flex-shrink: 0;
+}

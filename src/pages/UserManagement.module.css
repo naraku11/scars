@@ -1,0 +1,42 @@
+.userForm {
+  border: 1px solid #C8E6C9; border-radius: 10px; padding: 18px;
+  background: #F6FCF6; margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(27,94,32,0.06);
+}
+
+.avatarSm {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, #2E7D32, #43A047);
+  color: #fff; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(46,125,50,0.25);
+}
+
+.youBadge {
+  font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px;
+  background: #2E7D32; color: #fff;
+}
+
+.roleBadge {
+  background: #E8F5E9; color: #2E7D32; font-size: 12px; font-weight: 600;
+  padding: 3px 10px; border-radius: 20px; border: 1px solid #C8E6C9;
+  white-space: nowrap;
+}
+
+.rolesGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.roleCard {
+  border: 1px solid #e2ede3; border-top: 3px solid; border-radius: 12px;
+  padding: 18px; background: #fff;
+  box-shadow: 0 1px 4px rgba(27,94,32,0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.roleCard:hover {
+  box-shadow: 0 4px 16px rgba(46,125,50,0.10);
+  transform: translateY(-2px);
+}
+.roleCardHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.roleChip { padding: 3px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; }
+.userCount { font-size: 11px; color: #4a7a52; font-weight: 600; }
+.roleDesc { font-size: 12px; color: #4a7a52; margin-bottom: 12px; line-height: 1.5; }
+.permList { display: flex; flex-wrap: wrap; gap: 5px; }
+.permBadge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }

@@ -1,0 +1,299 @@
+.header {
+  background: #fff;
+  border-bottom: 1px solid #C8E6C9;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+/* Small logo badge in header — hidden on desktop (sidebar shows it), visible on mobile */
+.headerLogo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #1B5E20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.headerLogoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+@media (min-width: 769px) {
+  /* Hide on desktop — sidebar already shows the logo */
+  .headerLogo { display: none; }
+}
+
+.menuBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: #1a2e1c;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  align-items: center;
+}
+.menuBtn:hover { background: #E8F5E9; }
+
+@media (max-width: 768px) {
+  .menuBtn { display: flex; }
+  .header  { padding: 12px 16px; }
+}
+
+.title    { font-size: 18px; font-weight: 700; color: #1a2e1c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.subtitle { font-size: 11px; color: #4a7a52; margin-top: 2px; }
+
+@media (max-width: 480px) {
+  .title    { font-size: 15px; }
+  .subtitle { display: none; }
+}
+
+.right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+
+/* ── Notification bell ─────────────────────── */
+.notifContainer { position: relative; }
+
+.notifBtn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #C8E6C9;
+  background: #fff;
+  color: #4a7a52;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.notifBtn:hover       { background: #E8F5E9; border-color: #43A047; color: #2E7D32; }
+.notifBtnActive       { background: #E8F5E9; border-color: #2E7D32; color: #2E7D32; }
+
+/* Badge */
+.badge {
+  position: absolute;
+  top: -5px; right: -5px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 2px solid #fff;
+  animation: badge-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes badge-pop {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+/* Bell ring animation when there are unread notifications */
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0);    }
+  10%       { transform: rotate(14deg); }
+  20%       { transform: rotate(-12deg); }
+  30%       { transform: rotate(10deg); }
+  40%       { transform: rotate(-8deg); }
+  50%       { transform: rotate(0);    }
+}
+.bellRing {
+  animation: bell-ring 2s ease-in-out 0.5s infinite;
+  transform-origin: top center;
+}
+
+/* ── Dropdown panel ────────────────────────── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 340px;
+  background: #fff;
+  border: 1px solid #C8E6C9;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(27, 94, 32, 0.14);
+  z-index: 200;
+  overflow: hidden;
+  animation: dropdown-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes dropdown-enter {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+@media (max-width: 480px) {
+  .dropdown {
+    width: calc(100vw - 24px);
+    right: -12px;
+  }
+}
+
+.dropHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #F1F8F2;
+}
+
+.dropTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a2e1c;
+}
+
+.dropCount {
+  font-size: 11px;
+  color: #4a7a52;
+  background: #F1F8F2;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.dropClose {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  padding: 2px;
+  border-radius: 4px;
+  min-height: unset;
+}
+.dropClose:hover { color: #1a2e1c; background: #F1F8F2; }
+
+.dropList {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+/* Empty state */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 16px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* Notification item */
+.notifItem {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #F1F8F2;
+  transition: background 0.12s;
+}
+.notifItem:last-child { border-bottom: none; }
+.notifItem:hover      { background: #F1F8F2; }
+
+.notifNew { background: #F6FFF7; }
+.notifNew:hover { background: #E8F5E9; }
+
+.notifIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notifBody  { flex: 1; min-width: 0; }
+
+.notifTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.notifTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a2e1c;
+  line-height: 1.3;
+}
+
+.notifTime {
+  font-size: 10px;
+  color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.notifMsg {
+  font-size: 12px;
+  color: #4a7a52;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notifMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notifType {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+
+.notifTarget {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+/* Footer */
+.dropFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-top: 1px solid #F1F8F2;
+  font-size: 11px;
+  color: #4a7a52;
+  background: #F9FDF9;
+}
+
+.date { font-size: 12px; color: #4a7a52; }
+
+@media (max-width: 480px) {
+  .date { display: none; }
+}

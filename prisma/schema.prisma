@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  avatar        String
+  profileImage  String?
+  status    String   @default("Active")
+  joined    DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roleId Int
+  role   Role @relation(fields: [roleId], references: [id])
+
+  teamMemberships   TeamMember[]
+  reportedIncidents Incident[]   @relation("ReportedBy")
+  sentNotifications Notification[]
+}
+
+model Role {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String
+  color       String  @default("#2E7D32")
+  level       Int     @default(99)
+  permissions Json    // { incidents, response, notifications, reports, admin }
+
+  users User[]
+}
+
+model Team {
+  id        Int    @id @default(autoincrement())
+  name      String @unique
+  status    String @default("Available")
+  specialty String
+
+  members   TeamMember[]
+  incidents Incident[]
+}
+
+model TeamMember {
+  userId Int
+  teamId Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([userId, teamId])
+}
+
+model Incident {
+  id          Int      @id @default(autoincrement())
+  title       String
+  type        String
+  priority    String
+  location    String
+  description String
+  status      String   @default("Open")
+  validated   Boolean  @default(false)
+  verified    Boolean  @default(false)
+  media       Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reportedById Int
+  reportedBy   User  @relation("ReportedBy", fields: [reportedById], references: [id])
+
+  assignedToId Int?
+  assignedTo   Team? @relation(fields: [assignedToId], references: [id])
+}
+
+model Notification {
+  id      Int      @id @default(autoincrement())
+  type    String
+  title   String
+  message String
+  target  String
+  status  String   @default("Sent")
+  sentAt  DateTime @default(now())
+
+  sentById Int
+  sentBy   User @relation(fields: [sentById], references: [id])
+}
+
+model BackupConfig {
+  id               Int      @id @default(1)
+  autoBackup       Boolean  @default(true)
+  backupLocation   String   @default("/var/backups/scars")
+  lastBackup       DateTime @default(now())
+  lastBackupStatus String   @default("Success")
+  retentionDays    Int      @default(30)
+  schedule         Json     @default("{\"frequency\":\"Daily\",\"time\":\"02:00\",\"retention\":\"30\"}")
+}
+
+model SystemConfig {
+  id             Int    @id @default(1)
+  siteName       String @default("UV Toledo Campus — SCARS")
+  timezone       String @default("UTC+8")
+  sessionTimeout Int    @default(30)
+  maxFileSize    Int    @default(10)
+  alertEmail     String @default("admin@uv.edu.ph")
+  logoImage      String @default("")
+}

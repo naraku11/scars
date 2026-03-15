@@ -1,0 +1,183 @@
+/* Shared styles for role-specific dashboards */
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.threeCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr 300px;
+  gap: 20px;
+  align-items: start;
+  margin-top: 16px;
+}
+
+.spanTwo {
+  grid-column: 1 / 3;
+}
+
+@media (max-width: 1100px) {
+  .twoCol { grid-template-columns: 1fr; }
+  .threeCol { grid-template-columns: 1fr; }
+  .spanTwo { grid-column: 1; }
+}
+
+/* Right column layout */
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Status pill */
+.pill {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Team row */
+.teamRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid #f0f7f0;
+}
+.teamRow:last-child { border-bottom: none; }
+
+.teamDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.teamMeta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+/* Member row */
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #F1F8F2;
+}
+.memberRow:last-child { border-bottom: none; }
+
+.memberAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #E8F5E9;
+  color: #2E7D32;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.youBadge {
+  background: #2E7D32;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+/* Alert item */
+.alertItem {
+  padding: 11px 0;
+  border-bottom: 1px solid #f0f7f0;
+}
+.alertItem:last-child { border-bottom: none; }
+
+/* Alert type dot */
+.alertTypeDot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Hero banner */
+.heroBanner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(135deg, #fff0f0 0%, #fff5f5 60%, #fff 100%);
+  border: 1px solid #fecaca;
+  border-left: 5px solid #dc2626;
+  border-radius: 12px;
+  padding: 22px 28px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 12px rgba(220, 38, 38, 0.08);
+}
+
+.heroIcon {
+  width: 60px;
+  height: 60px;
+  background: #fee2e2;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+}
+
+.heroTitle {
+  font-size: 19px;
+  font-weight: 800;
+  color: #1a2e1c;
+}
+
+.heroSub {
+  font-size: 13px;
+  color: #4a7a52;
+  margin-top: 5px;
+  max-width: 420px;
+  line-height: 1.5;
+}
+
+/* Report card */
+.reportCard { margin-bottom: 20px; }
+
+/* Emergency contacts */
+.emergencyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f7f0;
+}
+.emergencyRow:last-child { border-bottom: none; }
+
+.emergencyNum {
+  font-weight: 700;
+  font-size: 13px;
+  color: #2E7D32;
+  text-decoration: none;
+  background: #E8F5E9;
+  border: 1px solid #C8E6C9;
+  padding: 3px 10px;
+  border-radius: 20px;
+  transition: background 0.15s, color 0.15s;
+}
+.emergencyNum:hover { background: #C8E6C9; color: #1B5E20; }
