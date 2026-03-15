@@ -377,7 +377,7 @@ Hostinger Business provides **MySQL** and manages Node.js apps through **hPanel*
 Open the **hPanel Terminal** or connect via SSH:
 
 ```bash
-cd ~/domains/your-domain.com/public_html   # adjust path as needed
+cd ~/domains/uv-scars.com/public_html   # adjust path as needed
 git clone <repo-url> scars
 cd scars
 ```
@@ -397,8 +397,8 @@ Zip the project locally (exclude `node_modules/` and `dist/`), upload via **hPan
 |---|---|
 | Node.js version | `20.x` (latest LTS) |
 | Application mode | `Production` |
-| Application root | path to the `scars` folder (e.g. `/home/u123456789/domains/your-domain.com/scars`) |
-| Application URL | `your-domain.com` |
+| Application root | path to the `scars` folder (e.g. `/home/u123456789/domains/uv-scars.com/scars`) |
+| Application URL | `https://uv-scars.com` |
 | Application startup file | `server/index.js` |
 
 3. Add **Environment Variables**:
@@ -421,7 +421,7 @@ Zip the project locally (exclude `node_modules/` and `dist/`), upload via **hPan
 In the **Terminal** tab inside the Node.js app panel (or via SSH):
 
 ```bash
-cd ~/domains/your-domain.com/scars
+cd ~/domains/uv-scars.com/scars
 
 # Install packages (postinstall runs prisma generate automatically)
 npm install
@@ -430,7 +430,7 @@ npm install
 npm run build
 
 # Copy the built frontend into the domain's public_html so Apache serves it
-cp -r dist/. ~/domains/your-domain.com/public_html/
+cp -r dist/. ~/domains/uv-scars.com/public_html/
 
 # Create all MySQL tables from the Prisma schema
 npx prisma db push
@@ -447,8 +447,8 @@ node prisma/seed.js
 
 In **hPanel → Node.js**, click **Restart** (or **Start**) on your app entry. Hostinger manages the process automatically.
 
-- Open `your-domain.com` to see the login page
-- Open `your-domain.com/api/health` to confirm the API is responding
+- Open `uv-scars.com` to see the login page
+- Open `uv-scars.com/api/health` to confirm the API is responding
 - Refreshing any page (e.g. `/dashboard`) should work without a 404
 
 ---
@@ -456,11 +456,11 @@ In **hPanel → Node.js**, click **Restart** (or **Start**) on your app entry. H
 ### Updating after code changes
 
 ```bash
-cd ~/domains/your-domain.com/scars
+cd ~/domains/uv-scars.com/scars
 git pull
 npm install
 npm run build
-cp -r dist/. ~/domains/your-domain.com/public_html/
+cp -r dist/. ~/domains/uv-scars.com/public_html/
 npx prisma db push    # only needed if schema changed
 ```
 

@@ -21,9 +21,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const app  = express()
 const PORT = process.env.PORT || 3001
 const isProd = process.env.NODE_ENV === 'production'
+const ORIGIN  = process.env.FRONTEND_URL || 'https://uv-scars.com'
 
 app.use(cors({
-  origin: isProd ? false : '*',   // in prod, same-origin only (Express serves frontend)
+  origin: isProd ? ORIGIN : '*',
+  credentials: true,
 }))
 app.use(express.json({ limit: '20mb' }))   // allow base64 profile images
 
@@ -62,8 +64,8 @@ const httpServer = createServer(app)
 
 const io = new Server(httpServer, {
   cors: isProd
-    ? false                                              // same-origin in production
-    : { origin: '*', methods: ['GET', 'POST'] },         // open in dev
+    ? { origin: ORIGIN, methods: ['GET', 'POST'], credentials: true }
+    : { origin: '*',    methods: ['GET', 'POST'] },
 })
 
 setIo(io)
