@@ -4,10 +4,6 @@ import {
   authApi, usersApi, rolesApi, teamsApi,
   incidentsApi, notificationsApi, adminApi, profileApi,
 } from '../services/api'
-import {
-  mockUsers, mockRoles, mockTeams, mockIncidents,
-  mockNotifications, mockBackupConfig,
-} from '../data/mockData'
 
 const AppContext = createContext()
 
@@ -88,21 +84,6 @@ export function AppProvider({ children }) {
   }, [])
 
   // ── Bootstrap: restore session & load all data ──────────────────────
-  const loadMock = useCallback(() => {
-    setUsers(mockUsers)
-    setRoles(mockRoles)
-    setTeams(mockTeams)
-    setIncidents(mockIncidents)
-    setNotifications(mockNotifications)
-    setBackupConfig(mockBackupConfig)
-    const savedCfg = JSON.parse(localStorage.getItem('scars_system_config') || 'null')
-    setSystemConfig(savedCfg ?? {
-      siteName: 'UV Toledo Campus — SCARS', timezone: 'UTC+8',
-      language: 'English', sessionTimeout: 30, maxLoginAttempts: 5,
-      alertEmail: 'admin@uv.edu.ph', smsApiKey: '', logoImage: '',
-    })
-  }, [])
-
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
@@ -122,14 +103,11 @@ export function AppProvider({ children }) {
       setNotifications(notif)
       setSystemConfig(sys)
       setBackupConfig(bak)
-    } catch {
-      // API not running — use mock data so UI still works
-      loadMock()
     } finally {
       setLoading(false)
       setInitialized(true)
     }
-  }, [loadMock])
+  }, [])
 
   useEffect(() => {
     const token = localStorage.getItem('scars_token')
@@ -144,23 +122,11 @@ export function AppProvider({ children }) {
 
   // ── Auth ─────────────────────────────────────────────────────────────
   const login = async (email, password) => {
-    try {
-      const { token, user } = await authApi.login(email, password)
-      localStorage.setItem('scars_token', token)
-      setCurrentUser(user)
-      await loadAll()
-      return user
-    } catch {
-      // API unavailable — fall back to mock data login
-      const mockUser = mockUsers.find(
-        u => u.email === email && u.password === password
-      )
-      if (!mockUser) throw new Error('Invalid email or password')
-      setCurrentUser(mockUser)
-      loadMock()
-      setInitialized(true)
-      return mockUser
-    }
+    const { token, user } = await authApi.login(email, password)
+    localStorage.setItem('scars_token', token)
+    setCurrentUser(user)
+    await loadAll()
+    return user
   }
   const logout = () => {
     localStorage.removeItem('scars_token')
@@ -208,6 +174,10 @@ export function AppProvider({ children }) {
     setNotifications(prev => [n, ...prev])
     return n
   }
+  const deleteNotification = async (id) => {
+    await notificationsApi.delete(id)
+    setNotifications(prev => prev.filter(n => n.id !== id))
+  }
 
   // ── Users ────────────────────────────────────────────────────────────
   const addUser = async (data) => {
@@ -247,9 +217,17 @@ export function AppProvider({ children }) {
   }
 
   // ── Teams ─────────────────────────────────────────────────────────────
+  const addTeam = async (data) => {
+    const team = await teamsApi.create(data)
+    setTeams(prev => [...prev, team])
+  }
   const updateTeam = async (id, data) => {
     const team = await teamsApi.update(id, data)
     setTeams(prev => prev.map(t => t.id === id ? team : t))
+  }
+  const deleteTeam = async (id) => {
+    await teamsApi.delete(id)
+    setTeams(prev => prev.filter(t => t.id !== id))
   }
 
   // ── Admin / Config ────────────────────────────────────────────────────
@@ -278,11 +256,11 @@ export function AppProvider({ children }) {
       loading, initialized,
       addIncident, updateIncident, deleteIncident, validateIncident, verifyIncident,
       assignIncident, updateStatus,
-      sendNotification,
       updateProfile,
       addUser, updateUser, deleteUser,
       addRole, updateRole, deleteRole,
-      updateTeam,
+      addTeam, updateTeam, deleteTeam,
+      sendNotification, deleteNotification,
       triggerBackup, saveBackupConfig, saveSystemConfig,
       reload: loadAll,
     }}>

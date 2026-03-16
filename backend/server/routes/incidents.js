@@ -1,26 +1,32 @@
 import { Router } from 'express'
-import prisma from '../lib/prisma.js'
+import pool, { INCIDENT_SELECT, mapIncident } from '../lib/db.js'
 import { authenticate } from '../middleware/auth.js'
 import { emit } from '../lib/socket.js'
+import { cacheGet, cacheSet, cacheDel } from '../lib/cache.js'
 
 const router = Router()
 router.use(authenticate)
 
-const include = {
-  reportedBy: { select: { id: true, name: true, avatar: true } },
-  assignedTo:  { select: { id: true, name: true, status: true, specialty: true } },
+async function fetchIncident(id) {
+  const [rows] = await pool.execute(`${INCIDENT_SELECT} WHERE i.id = ?`, [id])
+  return rows.length ? mapIncident(rows[0]) : null
 }
 
 router.get('/', async (req, res) => {
   try {
-    const incidents = await prisma.incident.findMany({ include, orderBy: { createdAt: 'desc' } })
+    const cached = cacheGet('incidents')
+    if (cached) return res.json(cached)
+
+    const [rows] = await pool.execute(`${INCIDENT_SELECT} ORDER BY i.createdAt DESC`)
+    const incidents = rows.map(mapIncident)
+    cacheSet('incidents', incidents, 30_000)
     res.json(incidents)
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 router.get('/:id', async (req, res) => {
   try {
-    const incident = await prisma.incident.findUnique({ where: { id: +req.params.id }, include })
+    const incident = await fetchIncident(+req.params.id)
     if (!incident) return res.status(404).json({ error: 'Not found' })
     res.json(incident)
   } catch (e) { res.status(500).json({ error: e.message }) }
@@ -29,15 +35,12 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { title, type, priority, location, description, reportedById, assignedToId } = req.body
-    const incident = await prisma.incident.create({
-      data: {
-        title, type, priority, location, description,
-        reportedById: +reportedById,
-        assignedToId: assignedToId ? +assignedToId : null,
-        media: [],
-      },
-      include,
-    })
+    const [result] = await pool.execute(
+      'INSERT INTO Incident (title, type, priority, location, description, reportedById, assignedToId, media) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [title, type, priority, location, description, +reportedById, assignedToId ? +assignedToId : null, '[]']
+    )
+    const incident = await fetchIncident(result.insertId)
+    cacheDel('incidents')
     emit('incident:created', incident)
     res.status(201).json(incident)
   } catch (e) { res.status(400).json({ error: e.message }) }
@@ -45,19 +48,25 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
+    const id = +req.params.id
     const { title, type, priority, location, description, status, validated, verified, assignedToId } = req.body
-    const data = {}
-    if (title        !== undefined) data.title        = title
-    if (type         !== undefined) data.type          = type
-    if (priority     !== undefined) data.priority      = priority
-    if (location     !== undefined) data.location      = location
-    if (description  !== undefined) data.description   = description
-    if (status       !== undefined) data.status        = status
-    if (validated    !== undefined) data.validated     = validated
-    if (verified     !== undefined) data.verified      = verified
-    if (assignedToId !== undefined) data.assignedToId  = assignedToId ? +assignedToId : null
-
-    const incident = await prisma.incident.update({ where: { id: +req.params.id }, data, include })
+    const fields = [], vals = []
+    if (title        !== undefined) { fields.push('title = ?');        vals.push(title) }
+    if (type         !== undefined) { fields.push('type = ?');         vals.push(type) }
+    if (priority     !== undefined) { fields.push('priority = ?');     vals.push(priority) }
+    if (location     !== undefined) { fields.push('location = ?');     vals.push(location) }
+    if (description  !== undefined) { fields.push('description = ?');  vals.push(description) }
+    if (status       !== undefined) { fields.push('status = ?');       vals.push(status) }
+    if (validated    !== undefined) { fields.push('validated = ?');    vals.push(validated ? 1 : 0) }
+    if (verified     !== undefined) { fields.push('verified = ?');     vals.push(verified ? 1 : 0) }
+    if (assignedToId !== undefined) { fields.push('assignedToId = ?'); vals.push(assignedToId ? +assignedToId : null) }
+    if (fields.length) {
+      vals.push(id)
+      await pool.execute(`UPDATE Incident SET ${fields.join(', ')} WHERE id = ?`, vals)
+    }
+    const incident = await fetchIncident(id)
+    if (!incident) return res.status(404).json({ error: 'Not found' })
+    cacheDel('incidents')
     emit('incident:updated', incident)
     res.json(incident)
   } catch (e) { res.status(400).json({ error: e.message }) }
@@ -66,7 +75,8 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const id = +req.params.id
-    await prisma.incident.delete({ where: { id } })
+    await pool.execute('DELETE FROM Incident WHERE id = ?', [id])
+    cacheDel('incidents')
     emit('incident:deleted', { id })
     res.json({ ok: true })
   } catch (e) { res.status(400).json({ error: e.message }) }
@@ -74,11 +84,10 @@ router.delete('/:id', async (req, res) => {
 
 router.patch('/:id/validate', async (req, res) => {
   try {
-    const incident = await prisma.incident.update({
-      where: { id: +req.params.id },
-      data: { validated: true },
-      include,
-    })
+    const id = +req.params.id
+    await pool.execute('UPDATE Incident SET validated = 1 WHERE id = ?', [id])
+    const incident = await fetchIncident(id)
+    cacheDel('incidents')
     emit('incident:updated', incident)
     res.json(incident)
   } catch (e) { res.status(400).json({ error: e.message }) }
@@ -86,11 +95,10 @@ router.patch('/:id/validate', async (req, res) => {
 
 router.patch('/:id/verify', async (req, res) => {
   try {
-    const incident = await prisma.incident.update({
-      where: { id: +req.params.id },
-      data: { verified: true },
-      include,
-    })
+    const id = +req.params.id
+    await pool.execute('UPDATE Incident SET verified = 1 WHERE id = ?', [id])
+    const incident = await fetchIncident(id)
+    cacheDel('incidents')
     emit('incident:updated', incident)
     res.json(incident)
   } catch (e) { res.status(400).json({ error: e.message }) }
@@ -98,12 +106,14 @@ router.patch('/:id/verify', async (req, res) => {
 
 router.patch('/:id/assign', async (req, res) => {
   try {
+    const id = +req.params.id
     const { teamId } = req.body
-    const incident = await prisma.incident.update({
-      where: { id: +req.params.id },
-      data: { assignedToId: teamId ? +teamId : null, status: 'In Progress' },
-      include,
-    })
+    await pool.execute(
+      "UPDATE Incident SET assignedToId = ?, status = 'In Progress' WHERE id = ?",
+      [teamId ? +teamId : null, id]
+    )
+    const incident = await fetchIncident(id)
+    cacheDel('incidents')
     emit('incident:updated', incident)
     res.json(incident)
   } catch (e) { res.status(400).json({ error: e.message }) }

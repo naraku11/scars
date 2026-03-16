@@ -23,6 +23,10 @@ const PORT   = process.env.PORT || 3001
 const isProd = process.env.NODE_ENV === 'production'
 const ORIGIN = process.env.FRONTEND_URL || (isProd ? 'https://uv-scars.com' : 'http://localhost:5173')
 
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  JWT_SECRET is not set — login will fail. Add it to .env (local) or hPanel env vars (Hostinger).')
+}
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // Development: allow all origins (Vite dev server on :5173)
 // Production:  restrict to FRONTEND_URL only
@@ -58,7 +62,7 @@ if (isProd && existsSync(publicPath)) {
 }
 
 // ── SPA fallback ──────────────────────────────────────────────────────────────
-app.get('*', (req, res) => {
+app.get('/*splat', (req, res) => {
   if (existsSync(indexPath)) {
     // Production: serve index.html for any client-side route
     res.sendFile(indexPath)
@@ -69,7 +73,7 @@ app.get('*', (req, res) => {
     // Development: Express is running but Vite is not — give a helpful hint
     res.status(200).json({
       message: 'SCARS API is running in development mode.',
-      frontend: `Open http://localhost:5173 (start with: npm run dev:full)`,
+      frontend: 'Open http://localhost:5173 — start with: cd frontend && npm run dev',
       health: '/api/health',
     })
   }
@@ -84,6 +88,7 @@ const io = new Server(httpServer, {
     : { origin: '*',    methods: ['GET', 'POST'] },
   // polling first — more reliable on shared hosting; upgrades to websocket when available
   transports: ['polling', 'websocket'],
+  allowEIO3: true,   // Engine.io v3 compatibility (some browsers / proxies)
 })
 
 setIo(io)

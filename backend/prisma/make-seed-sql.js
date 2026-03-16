@@ -10,6 +10,11 @@
 
 import bcrypt from 'bcryptjs'
 import { writeFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname  = dirname(__filename)
 
 console.log('🔐 Hashing passwords...')
 const COST = 10
@@ -113,6 +118,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Change all passwords after first login!
 `
 
-writeFileSync('prisma/seed.sql', sql)
+writeFileSync(join(__dirname, 'seed.sql'), sql)
 console.log('✅  prisma/seed.sql written')
 console.log('   Import it via: hPanel → Databases → phpMyAdmin → Import')

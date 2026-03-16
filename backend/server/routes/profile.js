@@ -1,21 +1,18 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
-import prisma from '../lib/prisma.js'
+import pool, { USER_ROLE_SELECT, mapUser } from '../lib/db.js'
 import { authenticate } from '../middleware/auth.js'
 import { emit } from '../lib/socket.js'
+import { cacheDel } from '../lib/cache.js'
 
 const router = Router()
 
 // GET /api/profile — current user's full profile
 router.get('/', authenticate, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: { role: true },
-    })
-    if (!user) return res.status(404).json({ error: 'User not found' })
-    const { password: _, ...safe } = user
-    res.json(safe)
+    const [rows] = await pool.execute(`${USER_ROLE_SELECT} WHERE u.id = ?`, [req.user.id])
+    if (!rows.length) return res.status(404).json({ error: 'User not found' })
+    res.json(mapUser(rows[0]))
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -25,22 +22,24 @@ router.get('/', authenticate, async (req, res) => {
 router.put('/', authenticate, async (req, res) => {
   const { name, email, password, profileImage } = req.body
   try {
-    const data = {}
-    if (name)                      data.name = name
-    if (email)                     data.email = email
-    if (password)                  data.password = await bcrypt.hash(password, 10)
-    if (profileImage !== undefined) data.profileImage = profileImage
-    if (name) {
-      data.avatar = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U'
+    const fields = [], vals = []
+    if (name)  {
+      fields.push('name = ?');  vals.push(name)
+      const avatar = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U'
+      fields.push('avatar = ?'); vals.push(avatar)
     }
-    const user = await prisma.user.update({
-      where: { id: req.user.id },
-      data,
-      include: { role: true },
-    })
-    const { password: _, ...safe } = user
-    emit('user:updated', safe)
-    res.json(safe)
+    if (email)                     { fields.push('email = ?');        vals.push(email) }
+    if (password)                  { fields.push('password = ?');     vals.push(await bcrypt.hash(password, 10)) }
+    if (profileImage !== undefined) { fields.push('profileImage = ?'); vals.push(profileImage) }
+    if (fields.length) {
+      vals.push(req.user.id)
+      await pool.execute(`UPDATE User SET ${fields.join(', ')} WHERE id = ?`, vals)
+    }
+    const [rows] = await pool.execute(`${USER_ROLE_SELECT} WHERE u.id = ?`, [req.user.id])
+    const user = mapUser(rows[0])
+    cacheDel('users', `user:${req.user.id}`)
+    emit('user:updated', user)
+    res.json(user)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
