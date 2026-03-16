@@ -7,6 +7,7 @@ import express from 'express'
 import cors from 'cors'
 import { Server } from 'socket.io'
 import { setIo }             from './lib/socket.js'
+import pool                  from './lib/db.js'
 import authRoutes            from './routes/auth.js'
 import userRoutes            from './routes/users.js'
 import roleRoutes            from './routes/roles.js'
@@ -101,7 +102,13 @@ io.on('connection', (socket) => {
 })
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
+  try {
+    await pool.execute('SELECT 1')
+    console.log('   DB       : ✅ connected')
+  } catch (e) {
+    console.error('   DB       : ❌ connection failed —', e.message)
+  }
   console.log(`\n🚀 SCARS server started`)
   console.log(`   Mode     : ${isProd ? 'production' : 'development'}`)
   console.log(`   Port     : ${PORT}`)

@@ -31,8 +31,8 @@ router.post('/login', async (req, res) => {
     cacheSet(`user:${user.id}`, user, 60_000)
     res.json({ token, user })
   } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: 'Server error' })
+    console.error('[login]', e)
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Server error' : e.message })
   }
 })
 
