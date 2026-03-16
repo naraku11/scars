@@ -1,21 +1,31 @@
 import 'dotenv/config'
 import mysql from 'mysql2/promise'
 
-const { DATABASE_URL = 'mysql://root:@localhost:3306/scars_db' } = process.env
-
-function parseDbUrl(urlStr) {
-  const u = new URL(urlStr)
+function getConfig() {
+  // Prefer individual vars — avoids URL encoding issues with special chars in passwords
+  if (process.env.MYSQL_HOST || process.env.MYSQL_USER) {
+    return {
+      host:     process.env.MYSQL_HOST     || '127.0.0.1',
+      port:     Number(process.env.MYSQL_PORT) || 3306,
+      user:     process.env.MYSQL_USER     || 'root',
+      password: process.env.MYSQL_PASSWORD || '',
+      database: process.env.MYSQL_DATABASE || 'scars_db',
+    }
+  }
+  // Fall back to DATABASE_URL
+  const url = process.env.DATABASE_URL || 'mysql://root:@127.0.0.1:3306/scars_db'
+  const u = new URL(url)
   return {
-    host: u.hostname,
-    port: Number(u.port) || 3306,
-    user: decodeURIComponent(u.username),
+    host:     u.hostname,
+    port:     Number(u.port) || 3306,
+    user:     decodeURIComponent(u.username),
     password: decodeURIComponent(u.password),
     database: u.pathname.slice(1),
   }
 }
 
 const pool = mysql.createPool({
-  ...parseDbUrl(DATABASE_URL),
+  ...getConfig(),
   waitForConnections: true,
   connectionLimit: 10,
   charset: 'utf8mb4',
