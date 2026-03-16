@@ -27,7 +27,8 @@ export function AppProvider({ children }) {
   const socketRef = useRef(null)
 
   useEffect(() => {
-    const socket = socketIo({ path: '/socket.io', transports: ['websocket', 'polling'] })
+    // polling first → more reliable on Hostinger shared hosting (upgrades to websocket when available)
+    const socket = socketIo({ path: '/socket.io', transports: ['polling', 'websocket'] })
     socketRef.current = socket
 
     // Incidents

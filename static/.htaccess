@@ -1,15 +1,18 @@
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
+Options -MultiViews
+RewriteEngine On
+RewriteBase /
 
-  # Proxy API and Socket.io calls to the Node.js backend on port 3001
-  <IfModule mod_proxy_http.c>
-    RewriteCond %{REQUEST_URI} ^/(api|socket\.io)/ [NC]
-    RewriteRule ^(.*)$ http://127.0.0.1:3001/$1 [P,L,QSA]
-  </IfModule>
-
-  # SPA routing — serve index.html for every route that is not a real file/folder
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ index.html [L]
+# ── Proxy /api/* and /socket.io/* to Node.js backend (port 3001) ──────────────
+<IfModule mod_proxy.c>
+  RewriteCond %{REQUEST_URI} ^/api/       [NC,OR]
+  RewriteCond %{REQUEST_URI} ^/socket.io/
+  RewriteRule ^(.*)$ http://127.0.0.1:3001/$1 [P,L,QSA]
+  ProxyPassReverse / http://127.0.0.1:3001/
 </IfModule>
+
+# ── SPA routing ───────────────────────────────────────────────────────────────
+# Any request that is not a real file or directory is served as index.html
+# This allows React Router to handle /dashboard, /officer, /student, etc.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]

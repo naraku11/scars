@@ -358,18 +358,18 @@ The server emits Socket.io events after every mutation. The frontend `AppContext
 
 ## Deployment — Hostinger Business
 
-Hostinger Business provides **MySQL** and manages Node.js apps through **hPanel** — no manual Nginx or process manager needed.
-
-**How it works in production:**
-- Vite builds the React app into `public/` (Hostinger reads output from there)
-- `static/.htaccess` is auto-copied into `public/` during build — it handles SPA routing so `/dashboard`, `/officer`, etc. never 404 on refresh
-- Express serves the API (`/api/*`, `/socket.io/*`) on port 3001; Apache proxies those paths via the `.htaccess` rules
-
 **Live URL:** https://uv-scars.com
+
+**How the production stack works:**
+- Vite builds the React app into `public/` — Hostinger's Node.js manager reads output from there
+- `static/.htaccess` is auto-copied into `public/` at build time — handles SPA routing so `/dashboard`, `/officer`, etc. never 404 on direct access or refresh
+- Express (port 3001) serves all API routes and Socket.io; Hostinger's Apache reverse-proxies the domain to it
+
+> **Note on SSH:** `npm` is **not** on the SSH PATH on Hostinger shared hosting. Use the **"Run NPM command"** field inside the hPanel Node.js panel for all `npm`/`npx` commands.
 
 ---
 
-### Step 1 — MySQL database (already created)
+### MySQL database (already created)
 
 | Field | Value |
 |---|---|
@@ -380,28 +380,26 @@ Hostinger Business provides **MySQL** and manages Node.js apps through **hPanel*
 
 ---
 
-### Step 2 — Upload the project
+### Step 1 — Upload the project
 
 **Option A — Git (recommended)**
 
-Open **hPanel → SSH Access** (search "SSH" in the hPanel search bar) or use the Terminal button inside the Node.js app panel:
+Search **SSH Access** in hPanel, connect, then:
 
 ```bash
 cd ~/domains/uv-scars.com
 git clone <repo-url> scars
-cd scars
 ```
 
 **Option B — File Manager**
 
-Zip the project locally (exclude `node_modules/` and `public/`), upload via **hPanel → File Manager**, then extract into `~/domains/uv-scars.com/scars/`.
+Zip the project locally (exclude `node_modules/` and `public/`), upload via **hPanel → File Manager**, extract into `~/domains/uv-scars.com/scars/`.
 
 ---
 
-### Step 3 — Create the Node.js application
+### Step 2 — Create the Node.js application
 
-1. In hPanel, use the **search bar** at the top and type **Node.js**, then open it
-   *(it is listed under the **Website** section, not Advanced)*
+1. Search **Node.js** in hPanel (under the **Website** section) and open it
 2. Click **Create Application** and fill in:
 
 | Setting | Value |
@@ -412,71 +410,60 @@ Zip the project locally (exclude `node_modules/` and `public/`), upload via **hP
 | Application URL | `uv-scars.com` |
 | Application startup file | `server/index.js` |
 
-3. Add **Environment Variables** in the same form:
+3. Add **Environment Variables**:
 
 | Key | Value |
 |---|---|
 | `DATABASE_URL` | `mysql://u856082912_scars:YOUR_DB_PASSWORD@localhost:3306/u856082912_scars_db` |
-| `JWT_SECRET` | long random string — generate with `openssl rand -hex 32` |
+| `JWT_SECRET` | any long random string |
 | `NODE_ENV` | `production` |
 | `PORT` | `3001` |
 | `FRONTEND_URL` | `https://uv-scars.com` |
 | `FACEPP_API_KEY` | *(optional)* |
 | `FACEPP_API_SECRET` | *(optional)* |
 
-4. Click **Create** — Hostinger configures the reverse proxy automatically
+4. Click **Create**
 
 ---
 
-### Step 4 — Install, migrate, seed, and build
+### Step 3 — Install, build, and seed
 
-> **Important:** `npm` is not on the SSH PATH on Hostinger shared hosting.
-> All `npm`/`npx` commands must be run through the **hPanel Node.js panel**, not raw SSH.
+Inside the Node.js app panel, use the **"Run NPM command"** field in this order:
 
-#### 4a — Install dependencies
-
-1. Search **Node.js** in hPanel and open your app
-2. Find the **"Run NPM command"** field (or **"NPM install"** button)
-3. Run: `install` (hPanel prepends `npm` automatically)
-4. Wait for it to finish — this also runs `prisma generate` via the postinstall hook
-
-#### 4b — Migrate the database
-
-In the same Node.js panel, use **"Run NPM command"** to run each of these in order:
-
-| Command to enter | What it does |
+| Enter this | What it does |
 |---|---|
-| `run db:push` | Creates all MySQL tables from the Prisma schema |
-| `run db:seed` | Seeds default roles, teams, and accounts |
-| `run build` | Builds the React frontend into `public/` |
+| `install` | installs packages + runs `prisma generate` automatically |
+| `run deploy` | pushes DB schema, seeds accounts, and builds the frontend |
 
-> If the panel only has a plain terminal (with Node.js PATH active), you can run:
-> ```bash
-> npx prisma db push
-> node prisma/seed.js
-> npm run build
+> `npm run deploy` = `prisma generate && prisma db push && node prisma/seed.js && vite build`
+>
+> If you want to run steps separately:
+> ```
+> run db:push     ← creates all MySQL tables
+> run db:seed     ← seeds roles, teams, default accounts
+> run build       ← builds React frontend → public/
 > ```
 
 ---
 
-### Step 5 — Start the app
+### Step 4 — Start the app
 
-Search **Node.js** in hPanel, then click **Restart** (or **Start**) on the `scars` entry.
+In the Node.js panel, click **Restart** (or **Start**).
 
 Verify:
-- `https://uv-scars.com` → login page
+- `https://uv-scars.com` → login page loads
 - `https://uv-scars.com/api/health` → `{ "ok": true }`
-- Refreshing `https://uv-scars.com/dashboard` → no 404
+- Refreshing `https://uv-scars.com/dashboard` → no 404 or 503
 
 ---
 
 ### Updating after code changes
 
-1. Upload changed files (File Manager or `git pull` via SSH)
-2. In the hPanel Node.js panel, **Run NPM command**: `install`
+1. Upload changed files via File Manager or `git pull` via SSH
+2. In the hPanel Node.js panel — **Run NPM command**: `install`
 3. **Run NPM command**: `run build`
 4. If schema changed — **Run NPM command**: `run db:push`
-5. Click **Restart** in the Node.js panel
+5. Click **Restart**
 
 ---
 

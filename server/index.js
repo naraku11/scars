@@ -79,7 +79,7 @@ httpServer.listen(PORT, () => {
   console.log(`🚀 SCARS API running on port ${PORT}`)
   console.log(`   NODE_ENV : ${process.env.NODE_ENV || 'development'}`)
   console.log(`   DB URL   : ${process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':***@') : 'NOT SET'}`)
-  console.log(`   dist/    : ${existsSync(join(__dirname, '../dist')) ? 'found' : 'MISSING — run npm run build'}`)
+  console.log(`   public/  : ${existsSync(join(__dirname, '../public')) ? 'found' : 'MISSING — run npm run build'}`)
 })
 
 process.on('unhandledRejection', (err) => {

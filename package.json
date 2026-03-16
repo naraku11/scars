@@ -12,10 +12,10 @@
     "server:dev": "nodemon --watch server server/index.js",
     "dev:full": "concurrently \"npm run dev\" \"npm run server:dev\"",
     "postinstall": "prisma generate",
-    "build:prod": "npm run build && prisma generate",
+    "deploy": "prisma generate && prisma db push && node prisma/seed.js && vite build",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev --name init",
-    "db:seed": "prisma db seed",
+    "db:seed": "node prisma/seed.js",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio"
   },

@@ -1,14 +1,14 @@
 # Dependencies
 node_modules/
 
-# Build output (generated on server via npm run build)
-dist/
+# Build output — generated on the server via npm run build
 public/
+dist/
 
 # Environment — never commit real secrets
 .env
 
-# Prisma generated client (regenerated via postinstall)
+# Prisma generated client — regenerated via postinstall
 node_modules/.prisma/
 
 # OS / editor
@@ -18,6 +18,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# PM2 logs
+# Logs
 logs/
 *.pid
