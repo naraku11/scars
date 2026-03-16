@@ -384,7 +384,7 @@ Hostinger Business provides **MySQL** and manages Node.js apps through **hPanel*
 
 **Option A — Git (recommended)**
 
-Open **hPanel → Advanced → SSH Access** or use the built-in Terminal:
+Open **hPanel → SSH Access** (search "SSH" in the hPanel search bar) or use the Terminal button inside the Node.js app panel:
 
 ```bash
 cd ~/domains/uv-scars.com
@@ -400,7 +400,8 @@ Zip the project locally (exclude `node_modules/` and `public/`), upload via **hP
 
 ### Step 3 — Create the Node.js application
 
-1. Go to **hPanel → Advanced → Node.js**
+1. In hPanel, use the **search bar** at the top and type **Node.js**, then open it
+   *(it is listed under the **Website** section, not Advanced)*
 2. Click **Create Application** and fill in:
 
 | Setting | Value |
@@ -429,32 +430,38 @@ Zip the project locally (exclude `node_modules/` and `public/`), upload via **hP
 
 ### Step 4 — Install, migrate, seed, and build
 
-In the **Terminal** tab of the Node.js app panel (or via SSH):
+> **Important:** `npm` is not on the SSH PATH on Hostinger shared hosting.
+> All `npm`/`npx` commands must be run through the **hPanel Node.js panel**, not raw SSH.
 
-```bash
-cd ~/domains/uv-scars.com/scars
+#### 4a — Install dependencies
 
-# 1. Install dependencies and generate Prisma client for Linux
-npm install
-npx prisma generate
+1. Search **Node.js** in hPanel and open your app
+2. Find the **"Run NPM command"** field (or **"NPM install"** button)
+3. Run: `install` (hPanel prepends `npm` automatically)
+4. Wait for it to finish — this also runs `prisma generate` via the postinstall hook
 
-# 2. Create all MySQL tables
-npx prisma db push
+#### 4b — Migrate the database
 
-# 3. Seed default roles, teams, and accounts
-node prisma/seed.js
+In the same Node.js panel, use **"Run NPM command"** to run each of these in order:
 
-# 4. Build the React frontend → public/
-npm run build
-```
+| Command to enter | What it does |
+|---|---|
+| `run db:push` | Creates all MySQL tables from the Prisma schema |
+| `run db:seed` | Seeds default roles, teams, and accounts |
+| `run build` | Builds the React frontend into `public/` |
 
-> `npm run build` outputs directly to `public/` — no manual file copying needed.
+> If the panel only has a plain terminal (with Node.js PATH active), you can run:
+> ```bash
+> npx prisma db push
+> node prisma/seed.js
+> npm run build
+> ```
 
 ---
 
 ### Step 5 — Start the app
 
-In **hPanel → Node.js**, click **Restart** (or **Start**) on the `scars` entry.
+Search **Node.js** in hPanel, then click **Restart** (or **Start**) on the `scars` entry.
 
 Verify:
 - `https://uv-scars.com` → login page
@@ -465,16 +472,11 @@ Verify:
 
 ### Updating after code changes
 
-```bash
-cd ~/domains/uv-scars.com/scars
-git pull
-npm install
-npx prisma generate
-npx prisma db push    # only if schema changed
-npm run build
-```
-
-Then **hPanel → Node.js → Restart**.
+1. Upload changed files (File Manager or `git pull` via SSH)
+2. In the hPanel Node.js panel, **Run NPM command**: `install`
+3. **Run NPM command**: `run build`
+4. If schema changed — **Run NPM command**: `run db:push`
+5. Click **Restart** in the Node.js panel
 
 ---
 
