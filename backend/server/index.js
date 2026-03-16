@@ -1,0 +1,122 @@
+import 'dotenv/config'
+import { createServer } from 'http'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+import { existsSync } from 'fs'
+import express from 'express'
+import cors from 'cors'
+import { Server } from 'socket.io'
+import { setIo }             from './lib/socket.js'
+import authRoutes            from './routes/auth.js'
+import userRoutes            from './routes/users.js'
+import roleRoutes            from './routes/roles.js'
+import teamRoutes            from './routes/teams.js'
+import incidentRoutes        from './routes/incidents.js'
+import notificationRoutes    from './routes/notifications.js'
+import adminRoutes           from './routes/admin.js'
+import profileRoutes         from './routes/profile.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+const app    = express()
+const PORT   = process.env.PORT || 3001
+const isProd = process.env.NODE_ENV === 'production'
+const ORIGIN = process.env.FRONTEND_URL || (isProd ? 'https://uv-scars.com' : 'http://localhost:5173')
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+// Development: allow all origins (Vite dev server on :5173)
+// Production:  restrict to FRONTEND_URL only
+app.use(cors({
+  origin: isProd ? ORIGIN : '*',
+  credentials: true,
+}))
+
+app.use(express.json({ limit: '20mb' }))  // base64 profile/logo images
+
+// ── API routes ────────────────────────────────────────────────────────────────
+app.use('/api/auth',          authRoutes)
+app.use('/api/users',         userRoutes)
+app.use('/api/roles',         roleRoutes)
+app.use('/api/teams',         teamRoutes)
+app.use('/api/incidents',     incidentRoutes)
+app.use('/api/notifications', notificationRoutes)
+app.use('/api/admin',         adminRoutes)
+app.use('/api/profile',       profileRoutes)
+
+app.get('/api/health', (_, res) =>
+  res.json({ ok: true, env: process.env.NODE_ENV || 'development', time: new Date().toISOString() })
+)
+
+// ── Static frontend (production only) ────────────────────────────────────────
+// In development, Vite dev server on :5173 serves the frontend — Express only serves the API.
+// In production (Hostinger), Express serves the built React app from public/.
+const publicPath = join(__dirname, '../public')
+const indexPath  = join(publicPath, 'index.html')
+
+if (isProd && existsSync(publicPath)) {
+  app.use(express.static(publicPath))
+}
+
+// ── SPA fallback ──────────────────────────────────────────────────────────────
+app.get('*', (req, res) => {
+  if (existsSync(indexPath)) {
+    // Production: serve index.html for any client-side route
+    res.sendFile(indexPath)
+  } else if (isProd) {
+    // Production but not built yet
+    res.status(503).send('Frontend not built. Run: npm run build')
+  } else {
+    // Development: Express is running but Vite is not — give a helpful hint
+    res.status(200).json({
+      message: 'SCARS API is running in development mode.',
+      frontend: `Open http://localhost:5173 (start with: npm run dev:full)`,
+      health: '/api/health',
+    })
+  }
+})
+
+// ── Socket.io ─────────────────────────────────────────────────────────────────
+const httpServer = createServer(app)
+
+const io = new Server(httpServer, {
+  cors: isProd
+    ? { origin: ORIGIN, methods: ['GET', 'POST'], credentials: true }
+    : { origin: '*',    methods: ['GET', 'POST'] },
+  // polling first — more reliable on shared hosting; upgrades to websocket when available
+  transports: ['polling', 'websocket'],
+})
+
+setIo(io)
+
+io.on('connection', (socket) => {
+  if (!isProd) console.log(`🔌 Client connected: ${socket.id}`)
+  socket.on('disconnect', () => {
+    if (!isProd) console.log(`🔌 Client disconnected: ${socket.id}`)
+  })
+})
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+httpServer.listen(PORT, () => {
+  console.log(`\n🚀 SCARS server started`)
+  console.log(`   Mode     : ${isProd ? 'production' : 'development'}`)
+  console.log(`   Port     : ${PORT}`)
+  console.log(`   DB       : ${process.env.DATABASE_URL
+    ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':***@')
+    : '⚠️  DATABASE_URL not set'}`)
+  if (isProd) {
+    console.log(`   Frontend : ${existsSync(publicPath) ? publicPath : '⚠️  not built — run npm run build'}`)
+    console.log(`   Origin   : ${ORIGIN}`)
+  } else {
+    console.log(`   Frontend : http://localhost:5173 (Vite)`)
+    console.log(`   API      : http://localhost:${PORT}/api`)
+  }
+  console.log()
+})
+
+// ── Error handling ────────────────────────────────────────────────────────────
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err?.message || err)
+  // In production crash loudly so the process manager restarts the app.
+  // In development keep running so a DB connection retry doesn't kill the server.
+  if (isProd) process.exit(1)
+})

@@ -67,60 +67,108 @@ Login automatically redirects each role to their dashboard. The notification bel
 
 ---
 
+## Project Structure
+
+```
+scars/
+├── frontend/                        # React + Vite app
+│   ├── src/
+│   │   ├── components/              # Header, Sidebar, Layout, LoadingScreen, BrandingManager
+│   │   ├── context/AppContext.jsx   # Global state, auth, Socket.io listeners
+│   │   ├── pages/                   # Login, Dashboard, role dashboards, Profile, admin pages
+│   │   ├── services/api.js          # Fetch-based API client
+│   │   └── data/mockData.js         # Offline fallback data
+│   ├── static/
+│   │   └── .htaccess                # SPA routing + API proxy (copied into build output)
+│   ├── index.html
+│   ├── vite.config.js               # Dev proxy → :3001; build → ../backend/public/
+│   └── package.json                 # Frontend-only deps (React, Vite, etc.)
+│
+└── backend/                         # Express + Prisma API
+    ├── server/
+    │   ├── index.js                 # Express entry; serves backend/public/ in production
+    │   ├── lib/
+    │   │   ├── prisma.js            # Prisma client singleton
+    │   │   └── socket.js            # Shared Socket.io emit helper
+    │   ├── middleware/auth.js        # JWT authentication
+    │   └── routes/                  # auth, users, roles, teams, incidents, notifications, admin, profile
+    ├── prisma/
+    │   ├── schema.prisma            # MySQL schema
+    │   ├── seed.js                  # Prisma seed script (node prisma/seed.js)
+    │   ├── make-seed-sql.js         # Generates seed.sql with bcrypt hashes for phpMyAdmin import
+    │   └── seed.sql                 # Ready-to-import SQL seed (run make-seed-sql.js to regenerate)
+    ├── .env                         # Local secrets — never commit
+    ├── .env.example                 # Template
+    └── package.json                 # Backend-only deps (Express, Prisma, etc.)
+```
+
+---
+
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- MySQL 8+
+- MySQL 8+ locally — [XAMPP](https://www.apachefriends.org/) is the easiest option (includes MySQL)
 
-### Installation
+### Local development
 
 ```bash
 # 1. Clone the repository
 git clone <repo-url>
 cd scars
 
-# 2. Install dependencies (also runs prisma generate via postinstall)
+# 2. Install backend dependencies
+cd backend
 npm install
 
-# 3. Configure environment
+# 3. Create the local environment file
 cp .env.example .env
-# Edit .env — set DATABASE_URL, JWT_SECRET, and optionally FACEPP keys
+# .env is pre-configured for XAMPP defaults (root / no password)
+# Edit DATABASE_URL if your local MySQL has a different user or password
 
-# 4. Push schema to database and seed
+# 4. Create the local database
+#    XAMPP → phpMyAdmin → New → name it "scars_db" → Create
+#    Or via CLI:
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS scars_db;"
+
+# 5. Push schema and seed
 npm run db:push
 npm run db:seed
 
-# 5. Start development (frontend + backend)
-npm run dev:full
+# 6. In a second terminal — install and start the frontend
+cd ../frontend
+npm install
+npm run dev
+
+# 7. Back in the first terminal — start the backend
+cd ../backend
+npm run dev
 ```
 
-The frontend runs at **http://localhost:5173** and the API at **http://localhost:3001**.
+- Frontend → **http://localhost:5173**
+- API → **http://localhost:3001/api**
+- Health → **http://localhost:3001/api/health**
+
+> **No MySQL?** The app auto-loads mock data when the database is unreachable.
+> Read operations work; create/update/delete will fail gracefully.
 
 ---
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and fill in the values:
+**Local:** `backend/.env` (copy from `backend/.env.example`).
+**Hostinger:** set in hPanel → Node.js → Environment Variables — no `.env` file needed on the server.
 
 ```env
-# MySQL connection string
-DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/scars_db"
+# Local (XAMPP):  mysql://root:@localhost:3306/scars_db
+# Hostinger:      mysql://u856082912_scars:PASSWORD@localhost:3306/u856082912_scars_db
+DATABASE_URL="mysql://root:@localhost:3306/scars_db"
 
-# JWT signing secret — use a long random string in production
-# Generate one: openssl rand -hex 32
-JWT_SECRET="your-secret-key-here"
-
-# Express server port (Hostinger sets this automatically)
+JWT_SECRET="change-me"      # any string locally; openssl rand -hex 32 for production
 PORT=3001
-
-# Set to "production" when deploying
-NODE_ENV=production
-
-# Face++ API for profile photo face detection (optional)
-# Sign up at https://www.faceplusplus.com/ — free tier available
-# Leave blank to skip face detection (any image will be accepted)
+NODE_ENV=development         # use "production" on Hostinger
+FRONTEND_URL=http://localhost:5173   # use https://uv-scars.com on Hostinger
 FACEPP_API_KEY=
 FACEPP_API_SECRET=
 ```
@@ -129,23 +177,15 @@ FACEPP_API_SECRET=
 
 ## Database Setup
 
-The project uses **Prisma ORM** with **MySQL 8+**.
+All database commands run from the `backend/` folder.
 
 ```bash
-# Apply schema to database (no migration file created)
-npm run db:push
+cd backend
 
-# Create and apply a named migration (recommended for production)
-npm run db:migrate
-
-# Seed the database with default roles, teams, and users
-npm run db:seed
-
-# Open Prisma Studio (visual database GUI)
-npm run db:studio
-
-# Reset database — drops all data and re-migrates
-npm run db:reset
+npm run db:push      # create / sync all MySQL tables
+npm run db:seed      # seed default roles, teams, and accounts
+npm run db:studio    # open Prisma Studio (visual DB browser)
+npm run db:reset     # drop all data and re-migrate
 ```
 
 ### Default Seed Accounts
@@ -163,21 +203,26 @@ npm run db:reset
 
 ## Available Scripts
 
+### Frontend (`cd frontend`)
+
 | Script | Description |
 |---|---|
-| `npm run dev` | Start Vite dev server (frontend only) |
-| `npm run server` | Start Express API server |
-| `npm run server:dev` | Start Express with auto-restart (nodemon) |
-| `npm run dev:full` | Start both frontend and backend concurrently |
-| `npm run build` | Build React frontend → `dist/` |
-| `npm run build:prod` | Build frontend + regenerate Prisma client |
-| `npm start` | Start production server (serves API + built frontend) |
-| `npm run preview` | Preview production build locally |
-| `npm run db:push` | Sync Prisma schema → database (no migration file) |
-| `npm run db:migrate` | Create and apply a named migration |
-| `npm run db:seed` | Seed database with initial data |
-| `npm run db:reset` | Drop all data and re-migrate |
-| `npm run db:studio` | Open Prisma Studio GUI |
+| `npm run dev` | Start Vite dev server on :5173 |
+| `npm run build` | Build → `../backend/public/` |
+| `npm run preview` | Preview the production build locally |
+
+### Backend (`cd backend`)
+
+| Script | Description |
+|---|---|
+| `npm run dev` | Start Express with nodemon (auto-restart) |
+| `npm start` | Start Express (production) |
+| `npm run build:frontend` | Install frontend deps and build into `backend/public/` |
+| `npm run deploy` | Full deploy: migrate + seed + build frontend |
+| `npm run db:push` | Push Prisma schema → MySQL |
+| `npm run db:seed` | Seed default data |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run db:reset` | Drop and re-migrate |
 
 ---
 
@@ -361,11 +406,12 @@ The server emits Socket.io events after every mutation. The frontend `AppContext
 **Live URL:** https://uv-scars.com
 
 **How the production stack works:**
-- Vite builds the React app into `public/` — Hostinger's Node.js manager reads output from there
-- `static/.htaccess` is auto-copied into `public/` at build time — handles SPA routing so `/dashboard`, `/officer`, etc. never 404 on direct access or refresh
-- Express (port 3001) serves all API routes and Socket.io; Hostinger's Apache reverse-proxies the domain to it
+- `frontend/` is built into `backend/public/` — Express serves it as static files
+- `frontend/static/.htaccess` is copied into the build — handles SPA routing so routes like `/dashboard` never 404 on refresh
+- Express (port 3001) serves both the API and the built frontend; Hostinger's Apache reverse-proxies the domain to it
 
-> **Note on SSH:** `npm` is **not** on the SSH PATH on Hostinger shared hosting. Use the **"Run NPM command"** field inside the hPanel Node.js panel for all `npm`/`npx` commands.
+> **Note on SSH:** `npm` is **not** on the SSH PATH on Hostinger shared hosting.
+> Use the **"Run NPM command"** field in the hPanel Node.js panel for all npm commands.
 
 ---
 
@@ -393,7 +439,7 @@ git clone <repo-url> scars
 
 **Option B — File Manager**
 
-Zip the project locally (exclude `node_modules/` and `public/`), upload via **hPanel → File Manager**, extract into `~/domains/uv-scars.com/scars/`.
+Zip the project (exclude `frontend/node_modules/`, `backend/node_modules/`, `backend/public/`), upload via **hPanel → File Manager**, extract into `~/domains/uv-scars.com/scars/`.
 
 ---
 
@@ -406,7 +452,7 @@ Zip the project locally (exclude `node_modules/` and `public/`), upload via **hP
 |---|---|
 | Node.js version | `20.x` (LTS) |
 | Application mode | `Production` |
-| Application root | `~/domains/uv-scars.com/scars` |
+| Application root | `~/domains/uv-scars.com/scars/backend` |
 | Application URL | `uv-scars.com` |
 | Application startup file | `server/index.js` |
 
@@ -432,17 +478,21 @@ Inside the Node.js app panel, use the **"Run NPM command"** field in this order:
 
 | Enter this | What it does |
 |---|---|
-| `install` | installs packages + runs `prisma generate` automatically |
-| `run deploy` | pushes DB schema, seeds accounts, and builds the frontend |
+| `install` | installs backend packages + runs `prisma generate` |
+| `run build:frontend` | installs frontend packages and builds into `backend/public/` |
+| `run db:push` | creates all MySQL tables from the Prisma schema |
 
-> `npm run deploy` = `prisma generate && prisma db push && node prisma/seed.js && vite build`
->
-> If you want to run steps separately:
-> ```
-> run db:push     ← creates all MySQL tables
-> run db:seed     ← seeds roles, teams, default accounts
-> run build       ← builds React frontend → public/
-> ```
+#### Seed the database (two options — pick one)
+
+**Option A — phpMyAdmin (recommended, no Node.js needed)**
+
+1. Run `node backend/prisma/make-seed-sql.js` **locally** to generate `backend/prisma/seed.sql` with real bcrypt hashes
+2. In Hostinger hPanel → **Databases** → **phpMyAdmin**
+3. Select `u856082912_scars_db` → click **Import** tab → choose `seed.sql` → click **Go**
+
+**Option B — Node.js panel**
+
+In the "Run NPM command" field: `run db:seed`
 
 ---
 
@@ -460,8 +510,8 @@ Verify:
 ### Updating after code changes
 
 1. Upload changed files via File Manager or `git pull` via SSH
-2. In the hPanel Node.js panel — **Run NPM command**: `install`
-3. **Run NPM command**: `run build`
+2. **Run NPM command**: `install`
+3. If frontend changed — **Run NPM command**: `run build:frontend`
 4. If schema changed — **Run NPM command**: `run db:push`
 5. Click **Restart**
 

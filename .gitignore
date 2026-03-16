@@ -1,23 +1,23 @@
-# Dependencies
+# ── Dependencies ──────────────────────────────────────────────────────────────
 node_modules/
+frontend/node_modules/
+backend/node_modules/
 
-# Build output — generated on the server via npm run build
-public/
-dist/
+# ── Build output (generated via npm run build) ────────────────────────────────
+backend/public/
 
-# Environment — never commit real secrets
+# ── Environment — never commit real secrets ───────────────────────────────────
 .env
+backend/.env
 
-# Prisma generated client — regenerated via postinstall
-node_modules/.prisma/
+# ── Prisma generated client (regenerated via postinstall) ─────────────────────
+backend/node_modules/.prisma/
 
-# OS / editor
+# ── OS / editor ───────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 *.log
 .vscode/
 .idea/
-
-# Logs
 logs/
 *.pid
