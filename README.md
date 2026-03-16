@@ -315,7 +315,7 @@ Socket.io emits after every mutation; `AppContext` patches state instantly.
 
 ---
 
-### Database (already created)
+### Database credentials
 
 | Field | Value |
 |---|---|
@@ -326,76 +326,117 @@ Socket.io emits after every mutation; `AppContext` patches state instantly.
 
 ---
 
-### Step 1 — Upload
+### Step 1 — Add Website
 
-**Git (recommended)**
-```bash
-# via SSH (search "SSH Access" in hPanel)
-cd ~/domains/uv-scars.com
-git clone <repo-url> scars
-```
-
-**File Manager** — zip the project (exclude `*/node_modules/` and `backend/public/`), upload and extract into `~/domains/uv-scars.com/scars/`.
+In hPanel → **Websites** → click **Add Website**.
 
 ---
 
-### Step 2 — Create Node.js app in hPanel
+### Step 2 — Select Node.js Web App
 
-Search **Node.js** in hPanel → **Create Application**:
+When prompted to choose a website type, select **Node.js Web App**.
+
+---
+
+### Step 3 — Choose domain
+
+Enter `uv-scars.com` as the domain name and continue.
+
+---
+
+### Step 4 — Deploy Your Node.js Web App
+
+Choose **Select Git repository** to import the project from GitHub/GitLab.
+
+- Authorize Hostinger to access your Git account if prompted.
+- Select the **scars** repository and the branch to deploy (e.g. `main`).
+
+---
+
+### Step 5 — Review build settings
 
 | Setting | Value |
 |---|---|
+| Framework preset | `Express` |
 | Node.js version | `20.x` |
-| Application mode | `Production` |
-| Application root | `~/domains/uv-scars.com/scars/backend` |
-| Application URL | `uv-scars.com` |
-| Application startup file | `server/index.js` |
+| Root directory | `backend` |
+
+**Build and output settings:**
+
+| Setting | Value |
+|---|---|
+| Package manager | `npm` |
+| Build command | `npm run build:frontend` |
+| Output directory | *(leave blank)* |
+| Entry file | `server/index.js` |
 
 **Environment Variables:**
 
 | Key | Value |
 |---|---|
-| `DATABASE_URL` | `mysql://u856082912_scars:PASSWORD@localhost:3306/u856082912_scars_db` |
-| `JWT_SECRET` | long random string |
+| `DATABASE_URL` | `mysql://u856082912_scars:YOUR_PASSWORD@localhost:3306/u856082912_scars_db` |
+| `JWT_SECRET` | run `openssl rand -hex 32` locally and paste the result |
 | `NODE_ENV` | `production` |
 | `PORT` | `3001` |
 | `FRONTEND_URL` | `https://uv-scars.com` |
-| `FACEPP_API_KEY` | *(optional)* |
-| `FACEPP_API_SECRET` | *(optional)* |
+| `FACEPP_API_KEY` | *(leave blank — optional)* |
+| `FACEPP_API_SECRET` | *(leave blank — optional)* |
+
+Click **Deploy**. Hostinger will clone the repo, run `npm install`, then `npm run build:frontend`, and start the server.
 
 ---
 
-### Step 3 — Install, build, seed
+### Step 6 — Create MySQL tables
 
-In the **"Run NPM command"** field:
+After the app starts, go to the **hPanel Node.js panel** → **Run NPM command** field and run:
 
-| Command | What it does |
+```
+run db:push
+```
+
+This creates all tables from the Prisma schema.
+
+---
+
+### Step 7 — Seed the database
+
+**Recommended — phpMyAdmin import:**
+
+1. On your **local machine**, run:
+   ```bash
+   cd scars/backend
+   node prisma/make-seed-sql.js
+   ```
+   This generates `backend/prisma/seed.sql` with bcrypt-hashed passwords.
+
+2. In hPanel → **Databases** → **phpMyAdmin** → select `u856082912_scars_db` → **Import** tab → choose `seed.sql` → click **Go**.
+
+**Alternative — NPM command:**
+
+In the Run NPM command field, run: `run db:seed`
+
+---
+
+### Step 8 — Verify
+
+| URL | Expected result |
 |---|---|
-| `install` | installs backend deps + `prisma generate` |
-| `run build:frontend` | installs frontend deps + builds → `backend/public/` |
-| `run db:push` | creates all MySQL tables |
-
-**Seed — pick one:**
-
-- **phpMyAdmin** *(recommended)* — run `node backend/prisma/make-seed-sql.js` locally → import `backend/prisma/seed.sql` via hPanel → Databases → phpMyAdmin → Import
-- **Node.js panel** — Run NPM command: `run db:seed`
+| `https://uv-scars.com` | Login page loads |
+| `https://uv-scars.com/api/health` | `{ "ok": true, "env": "production" }` |
 
 ---
 
-### Step 4 — Start
+### Updating the app
 
-Click **Restart** in the Node.js panel.
+Push your changes to the Git branch Hostinger is tracking — it will auto-deploy (or click **Redeploy** in the hPanel Websites panel).
 
-- `https://uv-scars.com` → login page
-- `https://uv-scars.com/api/health` → `{ "ok": true }`
-
----
-
-### Updating
+If the schema changed, go to the Node.js panel → Run NPM command and run:
 
 ```
-git pull (SSH)  →  install  →  run build:frontend  →  run db:push (if schema changed)  →  Restart
+run db:push
 ```
+
+Only needed when `prisma/schema.prisma` has changed.
 
 ---
 
