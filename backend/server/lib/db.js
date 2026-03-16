@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import mysql from 'mysql2/promise'
 
 const { DATABASE_URL = 'mysql://root:@localhost:3306/scars_db' } = process.env
