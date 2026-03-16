@@ -48,9 +48,18 @@ app.use('/api/notifications', notificationRoutes)
 app.use('/api/admin',         adminRoutes)
 app.use('/api/profile',       profileRoutes)
 
-app.get('/api/health', (_, res) =>
-  res.json({ ok: true, env: process.env.NODE_ENV || 'development', time: new Date().toISOString() })
-)
+app.get('/api/health', async (_, res) => {
+  let db = 'untested'
+  try { await pool.execute('SELECT 1'); db = 'connected' } catch (e) { db = e.message }
+  res.json({
+    ok: db === 'connected',
+    env: process.env.NODE_ENV || 'development',
+    db,
+    jwt: !!process.env.JWT_SECRET,
+    dbUrl: process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':***@') : 'NOT SET',
+    time: new Date().toISOString(),
+  })
+})
 
 // ── Static frontend (production only) ────────────────────────────────────────
 // In development, Vite dev server on :5173 serves the frontend — Express only serves the API.
@@ -128,7 +137,4 @@ httpServer.listen(PORT, async () => {
 // ── Error handling ────────────────────────────────────────────────────────────
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled rejection:', err?.message || err)
-  // In production crash loudly so the process manager restarts the app.
-  // In development keep running so a DB connection retry doesn't kill the server.
-  if (isProd) process.exit(1)
 })

@@ -32,9 +32,12 @@ router.post('/login', async (req, res) => {
     )
     const role = roles[0] ? { ...roles[0], permissions: parseJson(roles[0].permissions) } : null
 
+    const secret = process.env.JWT_SECRET
+    if (!secret) return res.status(500).json({ error: 'JWT_SECRET is not set — add it to hPanel environment variables' })
+
     const token = jwt.sign(
       { id: u.id, email: u.email, roleId: u.roleId },
-      process.env.JWT_SECRET,
+      secret,
       { expiresIn: '8h' }
     )
 
@@ -49,7 +52,7 @@ router.post('/login', async (req, res) => {
     res.json({ token, user })
   } catch (e) {
     console.error('[login]', e)
-    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Server error' : e.message })
+    res.status(500).json({ error: e.message })
   }
 })
 
