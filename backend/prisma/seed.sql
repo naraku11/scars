@@ -1,13 +1,20 @@
 -- ============================================================
 --  UV SCARS — Database Seed
---  Generated: 2026-03-16T05:03:06.637Z
+--  Generated: 2026-03-16T09:41:51.481Z
 --  Import via: phpMyAdmin → select database → Import tab
 -- ============================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- ── Clear existing data (children first) ──────────────────────────────────────
+DELETE FROM `Notification`;
+DELETE FROM `Incident`;
+DELETE FROM `TeamMember`;
+DELETE FROM `User`;
+DELETE FROM `Team`;
+DELETE FROM `Role`;
+
 -- ── Roles ─────────────────────────────────────────────────────────────────────
-TRUNCATE TABLE `Role`;
 INSERT INTO `Role` (id, name, description, color, level, permissions) VALUES
   (1, 'Admin',     'Full system access',            '#dc3545', 1, '{"incidents":true,"response":true,"notifications":true,"reports":true,"admin":true}'),
   (2, 'Officer',   'Campus security officer',        '#28a745', 2, '{"incidents":true,"response":true,"notifications":false,"reports":true,"admin":false}'),
@@ -15,33 +22,29 @@ INSERT INTO `Role` (id, name, description, color, level, permissions) VALUES
   (4, 'Student',   'Student — can report incidents', '#0288D1', 4, '{"incidents":true,"response":false,"notifications":false,"reports":false,"admin":false}');
 
 -- ── Users ─────────────────────────────────────────────────────────────────────
-TRUNCATE TABLE `User`;
 INSERT INTO `User` (id, name, email, password, avatar, profileImage, status, joined, createdAt, updatedAt, roleId) VALUES
-  (1, 'John Admin',      'admin@uv.edu.ph',            '$2a$10$E8a.XLaVvxN05ew3j1aQwuvc5kqEX6I0ds7E9JwSe22JQTD4s91HC',     'JA', NULL, 'Active', '2024-01-15 00:00:00', NOW(), NOW(), 1),
-  (2, 'Mike Officer',    'officer@uv.edu.ph',           '$2a$10$mT/RdSQzEpsOfNDP0vSDDeqfC1xQR8OcdHCvU6XfBbGH85mj2u15S',   'MO', NULL, 'Active', '2024-03-01 00:00:00', NOW(), NOW(), 2),
-  (3, 'Sarah Responder', 'responder@uv.edu.ph',         '$2a$10$yuB4qEVzBGQuZ6XvzCJpnOzbVq3zo2MgnUD3I1XWliUOkNoOcG9xG', 'SR', NULL, 'Active', '2024-02-20 00:00:00', NOW(), NOW(), 3),
-  (4, 'Ana Santos',      'ana.santos@uv.edu.ph',        '$2a$10$uKjdE0KqWstc2M1v0tmChOcTp.D/Ct/9Phw5IH/HbT/fkr2oOe2i6',   'AS', NULL, 'Active', '2024-06-10 00:00:00', NOW(), NOW(), 4),
-  (5, 'Carlo Reyes',     'carlo.reyes@uv.edu.ph',       '$2a$10$uKjdE0KqWstc2M1v0tmChOcTp.D/Ct/9Phw5IH/HbT/fkr2oOe2i6',   'CR', NULL, 'Active', '2024-06-10 00:00:00', NOW(), NOW(), 4),
-  (6, 'Maria Cruz',      'maria.cruz@uv.edu.ph',        '$2a$10$uKjdE0KqWstc2M1v0tmChOcTp.D/Ct/9Phw5IH/HbT/fkr2oOe2i6',   'MC', NULL, 'Active', '2024-06-11 00:00:00', NOW(), NOW(), 4),
-  (7, 'Jose Dela Torre', 'jose.delatorre@uv.edu.ph',    '$2a$10$uKjdE0KqWstc2M1v0tmChOcTp.D/Ct/9Phw5IH/HbT/fkr2oOe2i6',   'JD', NULL, 'Active', '2024-06-11 00:00:00', NOW(), NOW(), 4),
-  (8, 'Lea Villanueva',  'lea.villanueva@uv.edu.ph',    '$2a$10$uKjdE0KqWstc2M1v0tmChOcTp.D/Ct/9Phw5IH/HbT/fkr2oOe2i6',   'LV', NULL, 'Active', '2024-06-12 00:00:00', NOW(), NOW(), 4);
+  (1, 'John Admin',      'admin@uv.edu.ph',            '$2b$10$wbNlNyPu.sVJKeXCbGsDcuZFOTH8MAbDHmVNrveHZ3pfznb8qX9vG',     'JA', NULL, 'Active', '2024-01-15 00:00:00', NOW(), NOW(), 1),
+  (2, 'Mike Officer',    'officer@uv.edu.ph',           '$2b$10$MtnkT2aT0G8G7iavO4I2o.Jp557QTAX9wsrLiOhLzcpXjONTDEhhC',   'MO', NULL, 'Active', '2024-03-01 00:00:00', NOW(), NOW(), 2),
+  (3, 'Sarah Responder', 'responder@uv.edu.ph',         '$2b$10$vNp5cykTyWsWAwzKmhK7Qen/piu85m4M8uPBcBvI.091fK7RIeJhe', 'SR', NULL, 'Active', '2024-02-20 00:00:00', NOW(), NOW(), 3),
+  (4, 'Ana Santos',      'ana.santos@uv.edu.ph',        '$2b$10$j30KL6aoREvHtUuMxgJvGeJO8cx.uyRh/utRnxDQJ005Gwc8/CdiC',   'AS', NULL, 'Active', '2024-06-10 00:00:00', NOW(), NOW(), 4),
+  (5, 'Carlo Reyes',     'carlo.reyes@uv.edu.ph',       '$2b$10$j30KL6aoREvHtUuMxgJvGeJO8cx.uyRh/utRnxDQJ005Gwc8/CdiC',   'CR', NULL, 'Active', '2024-06-10 00:00:00', NOW(), NOW(), 4),
+  (6, 'Maria Cruz',      'maria.cruz@uv.edu.ph',        '$2b$10$j30KL6aoREvHtUuMxgJvGeJO8cx.uyRh/utRnxDQJ005Gwc8/CdiC',   'MC', NULL, 'Active', '2024-06-11 00:00:00', NOW(), NOW(), 4),
+  (7, 'Jose Dela Torre', 'jose.delatorre@uv.edu.ph',    '$2b$10$j30KL6aoREvHtUuMxgJvGeJO8cx.uyRh/utRnxDQJ005Gwc8/CdiC',   'JD', NULL, 'Active', '2024-06-11 00:00:00', NOW(), NOW(), 4),
+  (8, 'Lea Villanueva',  'lea.villanueva@uv.edu.ph',    '$2b$10$j30KL6aoREvHtUuMxgJvGeJO8cx.uyRh/utRnxDQJ005Gwc8/CdiC',   'LV', NULL, 'Active', '2024-06-12 00:00:00', NOW(), NOW(), 4);
 
 -- ── Teams ─────────────────────────────────────────────────────────────────────
-TRUNCATE TABLE `Team`;
 INSERT INTO `Team` (id, name, status, specialty) VALUES
   (1, 'Alpha Team', 'Available', 'General Security'),
   (2, 'Beta Team',  'On Duty',   'Medical Emergency'),
   (3, 'Delta Team', 'Available', 'Fire Safety');
 
 -- ── Team Members ──────────────────────────────────────────────────────────────
-TRUNCATE TABLE `TeamMember`;
 INSERT INTO `TeamMember` (userId, teamId) VALUES
   (3, 1), (2, 1),   -- Alpha: Responder + Officer
   (2, 2),           -- Beta:  Officer
   (3, 3), (2, 3);   -- Delta: Responder + Officer
 
 -- ── Incidents ─────────────────────────────────────────────────────────────────
-TRUNCATE TABLE `Incident`;
 INSERT INTO `Incident` (id, title, type, priority, location, description, status, validated, verified, media, createdAt, updatedAt, reportedById, assignedToId) VALUES
   (1,  'Suspicious Person in Library',   'Security',       'High',     'Main Library',          'A suspicious individual was seen loitering near the restricted archives.',         'Open',        0, 0, '[]', '2024-12-01 01:00:00', NOW(), 2, 1),
   (2,  'Medical Emergency at Cafeteria', 'Medical',        'Critical', 'Main Cafeteria',         'Student collapsed after lunch. Possible allergic reaction.',                       'In Progress', 1,  1,  '[]', '2024-12-02 04:15:00', NOW(), 2, 2),
@@ -56,7 +59,6 @@ INSERT INTO `Incident` (id, title, type, priority, location, description, status
   (11, 'Slip and Fall at Hallway',       'Medical',        'Medium',   'College of Eng. Bldg',  'Student slipped on wet floor due to roof leak. Minor injury sustained.',            'In Progress', 1,  0, '[]', '2024-12-07 00:45:00', NOW(), 6, 2);
 
 -- ── Notifications ─────────────────────────────────────────────────────────────
-TRUNCATE TABLE `Notification`;
 INSERT INTO `Notification` (id, type, title, message, target, status, sentAt, sentById) VALUES
   (1, 'Web Push', 'Emergency Alert',    'Fire alarm at Engineering Block B. Evacuate immediately.',       'All',        'Sent', '2024-12-03 06:05:00', 1),
   (2, 'SMS',      'Incident Update',    'Medical emergency resolved at cafeteria. Area is clear.',        'Responders', 'Sent', '2024-12-02 05:00:00', 1),

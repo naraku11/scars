@@ -39,8 +39,15 @@ const sql = `-- ============================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- ── Clear existing data (children first) ──────────────────────────────────────
+DELETE FROM \`Notification\`;
+DELETE FROM \`Incident\`;
+DELETE FROM \`TeamMember\`;
+DELETE FROM \`User\`;
+DELETE FROM \`Team\`;
+DELETE FROM \`Role\`;
+
 -- ── Roles ─────────────────────────────────────────────────────────────────────
-TRUNCATE TABLE \`Role\`;
 INSERT INTO \`Role\` (id, name, description, color, level, permissions) VALUES
   (1, 'Admin',     'Full system access',            '#dc3545', 1, ${json({ incidents: true,  response: true,  notifications: true,  reports: true,  admin: true  })}),
   (2, 'Officer',   'Campus security officer',        '#28a745', 2, ${json({ incidents: true,  response: true,  notifications: false, reports: true,  admin: false })}),
@@ -48,7 +55,6 @@ INSERT INTO \`Role\` (id, name, description, color, level, permissions) VALUES
   (4, 'Student',   'Student — can report incidents', '#0288D1', 4, ${json({ incidents: true,  response: false, notifications: false, reports: false, admin: false })});
 
 -- ── Users ─────────────────────────────────────────────────────────────────────
-TRUNCATE TABLE \`User\`;
 INSERT INTO \`User\` (id, name, email, password, avatar, profileImage, status, joined, createdAt, updatedAt, roleId) VALUES
   (1, 'John Admin',      'admin@uv.edu.ph',            '${esc(hAdmin)}',     'JA', NULL, 'Active', ${dt('2024-01-15')}, NOW(), NOW(), 1),
   (2, 'Mike Officer',    'officer@uv.edu.ph',           '${esc(hOfficer)}',   'MO', NULL, 'Active', ${dt('2024-03-01')}, NOW(), NOW(), 2),
@@ -60,21 +66,18 @@ INSERT INTO \`User\` (id, name, email, password, avatar, profileImage, status, j
   (8, 'Lea Villanueva',  'lea.villanueva@uv.edu.ph',    '${esc(hStudent)}',   'LV', NULL, 'Active', ${dt('2024-06-12')}, NOW(), NOW(), 4);
 
 -- ── Teams ─────────────────────────────────────────────────────────────────────
-TRUNCATE TABLE \`Team\`;
 INSERT INTO \`Team\` (id, name, status, specialty) VALUES
   (1, 'Alpha Team', 'Available', 'General Security'),
   (2, 'Beta Team',  'On Duty',   'Medical Emergency'),
   (3, 'Delta Team', 'Available', 'Fire Safety');
 
 -- ── Team Members ──────────────────────────────────────────────────────────────
-TRUNCATE TABLE \`TeamMember\`;
 INSERT INTO \`TeamMember\` (userId, teamId) VALUES
   (3, 1), (2, 1),   -- Alpha: Responder + Officer
   (2, 2),           -- Beta:  Officer
   (3, 3), (2, 3);   -- Delta: Responder + Officer
 
 -- ── Incidents ─────────────────────────────────────────────────────────────────
-TRUNCATE TABLE \`Incident\`;
 INSERT INTO \`Incident\` (id, title, type, priority, location, description, status, validated, verified, media, createdAt, updatedAt, reportedById, assignedToId) VALUES
   (1,  'Suspicious Person in Library',   'Security',       'High',     'Main Library',          'A suspicious individual was seen loitering near the restricted archives.',         'Open',        ${bool(false)}, ${bool(false)}, '[]', ${dt('2024-12-01T09:00:00')}, NOW(), 2, 1),
   (2,  'Medical Emergency at Cafeteria', 'Medical',        'Critical', 'Main Cafeteria',         'Student collapsed after lunch. Possible allergic reaction.',                       'In Progress', ${bool(true)},  ${bool(true)},  '[]', ${dt('2024-12-02T12:15:00')}, NOW(), 2, 2),
@@ -89,7 +92,6 @@ INSERT INTO \`Incident\` (id, title, type, priority, location, description, stat
   (11, 'Slip and Fall at Hallway',       'Medical',        'Medium',   'College of Eng. Bldg',  'Student slipped on wet floor due to roof leak. Minor injury sustained.',            'In Progress', ${bool(true)},  ${bool(false)}, '[]', ${dt('2024-12-07T08:45:00')}, NOW(), 6, 2);
 
 -- ── Notifications ─────────────────────────────────────────────────────────────
-TRUNCATE TABLE \`Notification\`;
 INSERT INTO \`Notification\` (id, type, title, message, target, status, sentAt, sentById) VALUES
   (1, 'Web Push', 'Emergency Alert',    'Fire alarm at Engineering Block B. Evacuate immediately.',       'All',        'Sent', ${dt('2024-12-03T14:05:00')}, 1),
   (2, 'SMS',      'Incident Update',    'Medical emergency resolved at cafeteria. Area is clear.',        'Responders', 'Sent', ${dt('2024-12-02T13:00:00')}, 1),
