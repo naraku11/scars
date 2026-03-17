@@ -361,32 +361,60 @@ function IncidentDetail({ inc, teams, onClose, onAssign, onStatusChange, onValid
             <div className={s.descText}>{inc.description || <span style={{ color: '#94a3b8' }}>No description provided.</span>}</div>
           </div>
 
-          <div className={s.actionSection}>
-            <div className={s.actionLabel}><Users size={13} /> Assign Response Team</div>
-            <div className={s.actionRow}>
-              <select value={teamId} onChange={e => setTeamId(e.target.value)} className={s.actionSelect}>
-                <option value="">— Unassigned —</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name} ({t.status})</option>)}
-              </select>
-              <button className={`${p.btn} ${p.btnPrimary} ${p.btnSm}`} disabled={busy.assign}
-                onClick={act('assign', () => onAssign(inc.id, teamId ? +teamId : null))}>
-                {busy.assign ? '…' : 'Assign'}
-              </button>
+          {inc.status === 'Resolved' ? (
+            <div className={`${s.actionSection} ${s.resolvedCard}`}>
+              <div className={s.actionLabel}><Users size={13} /> Assign Response Team</div>
+              <div style={{ fontSize: 12, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                <CheckCircle size={13} /> Assignment locked — incident is resolved
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className={s.actionSection}>
+              <div className={s.actionLabel}><Users size={13} /> Assign Response Team</div>
+              <div className={s.actionRow}>
+                <select value={teamId} onChange={e => setTeamId(e.target.value)} className={s.actionSelect}>
+                  <option value="">— Unassigned —</option>
+                  {teams.map(t => <option key={t.id} value={t.id}>{t.name} ({t.status})</option>)}
+                </select>
+                <button className={`${p.btn} ${p.btnPrimary} ${p.btnSm}`} disabled={busy.assign}
+                  onClick={act('assign', () => onAssign(inc.id, teamId ? +teamId : null))}>
+                  {busy.assign ? '…' : 'Assign'}
+                </button>
+              </div>
+            </div>
+          )}
 
-          <div className={s.actionSection}>
-            <div className={s.actionLabel}><Shield size={13} /> Update Status</div>
-            <div className={s.actionRow}>
-              <select value={status} onChange={e => setStatus(e.target.value)} className={s.actionSelect}>
-                {STATUSES.map(st => <option key={st}>{st}</option>)}
-              </select>
-              <button className={`${p.btn} ${p.btnSuccess} ${p.btnSm}`} disabled={busy.status || status === inc.status}
-                onClick={act('status', () => onStatusChange(inc.id, status))}>
-                {busy.status ? '…' : 'Update'}
-              </button>
-            </div>
-          </div>
+          {(() => {
+            const canResolve = inc.validated && inc.verified && inc.assignedTo
+            const resolveBlocked = status === 'Resolved' && !canResolve
+            return (
+              <div className={s.actionSection}>
+                <div className={s.actionLabel}><Shield size={13} /> Update Status</div>
+                <div className={s.actionRow}>
+                  <select value={status} onChange={e => setStatus(e.target.value)} className={s.actionSelect}>
+                    {STATUSES.map(st => (
+                      <option key={st} value={st} disabled={st === 'Resolved' && !canResolve}>
+                        {st}{st === 'Resolved' && !canResolve ? ' (requires validation, approval & assignment)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className={`${p.btn} ${p.btnSuccess} ${p.btnSm}`}
+                    disabled={busy.status || status === inc.status || resolveBlocked}
+                    title={resolveBlocked ? 'Incident must be validated, approved, and assigned before resolving' : ''}
+                    onClick={act('status', () => onStatusChange(inc.id, status))}
+                  >
+                    {busy.status ? '…' : 'Update'}
+                  </button>
+                </div>
+                {resolveBlocked && (
+                  <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <XCircle size={11} /> Must be validated, approved, and assigned to a team before resolving.
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           <div className={s.modalActions}>
             {!inc.validated && (

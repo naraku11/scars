@@ -15,6 +15,11 @@
 }
 .assignCard:hover { box-shadow: 0 4px 16px rgba(46,125,50,0.10); transform: translateY(-2px); }
 
+.assignCardResolved {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
 .assignCardHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
 .assignTitle { font-size: 13px; font-weight: 700; color: #1a2e1c; line-height: 1.4; }
 .assignMeta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #4a7a52; margin-bottom: 8px; }

@@ -565,7 +565,7 @@ export default function ResponseManagement() {
         {/* ══════════════ STATUS TRACKING TAB ══════════════ */}
         {tab === 'track' && (
           <>
-            {/* Active incidents — vertical cards */}
+            {/* Active incidents — card grid */}
             <div className={p.card}>
               <div className={p.sectionHeader}>
                 <span className={p.sectionTitle}>
@@ -579,31 +579,57 @@ export default function ResponseManagement() {
               {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length === 0
                 ? <div className={p.empty}>No active incidents.</div>
                 : (
-                  <div className={s.trackList}>
+                  <div className={s.assignedGrid}>
                     {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').map(inc => {
                       const team = getTeamFromInc(inc)
+                      const members = getMemberNames(team)
                       return (
-                        <div key={inc.id} className={s.trackCard}>
-                          <div className={s.trackCardLeft}>
-                            <div className={s.trackTitle}>{inc.title}</div>
-                            <div className={s.trackMeta}>
-                              <span>{inc.type}</span>
-                              <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
-                              {team
-                                ? <span className={s.memberChip}><Users size={10} /> {team.name}</span>
-                                : <span style={{ color: '#94a3b8' }}>Unassigned</span>
-                              }
-                              <span style={{ color: '#94a3b8' }}>{new Date(inc.updatedAt).toLocaleDateString()}</span>
-                            </div>
+                        <div key={inc.id} className={s.assignCard}>
+                          <div className={s.assignCardHeader}>
+                            <span className={s.assignTitle}>{inc.title}</span>
+                            <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
                           </div>
-                          <select
-                            value={inc.status}
-                            onChange={e => handleStatus(inc.id, e.target.value)}
-                            className={s.statusSelect}
-                            style={{ borderColor: inc.status === 'Open' ? '#ef4444' : '#f59e0b' }}
-                          >
-                            {STATUSES.map(st => <option key={st}>{st}</option>)}
-                          </select>
+                          <div className={s.assignMeta}>
+                            <span><strong>Type:</strong> {inc.type}</span>
+                            <span><strong>Location:</strong> {inc.location}</span>
+                          </div>
+                          {team && (
+                            <div className={s.teamChip}>
+                              <Users size={13} />
+                              <span>{team.name}</span>
+                              <span className={s.teamSpec}>· {team.specialty}</span>
+                              <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
+                            </div>
+                          )}
+                          {members.length > 0 && (
+                            <div className={s.assignMeta} style={{ marginTop: 4 }}>
+                              {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
+                            </div>
+                          )}
+                          {(() => {
+                            const canResolve = inc.validated && inc.verified && inc.assignedTo
+                            return (
+                              <div style={{ marginTop: 10 }}>
+                                <select
+                                  value={inc.status}
+                                  onChange={e => handleStatus(inc.id, e.target.value)}
+                                  className={s.statusSelect}
+                                  style={{ width: '100%', borderColor: inc.status === 'Open' ? '#ef4444' : '#f59e0b' }}
+                                >
+                                  {STATUSES.map(st => (
+                                    <option key={st} value={st} disabled={st === 'Resolved' && !canResolve}>
+                                      {st}{st === 'Resolved' && !canResolve ? ' (needs validation, approval & team)' : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                                {!canResolve && (
+                                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4, lineHeight: 1.4 }}>
+                                    Resolve requires: {!inc.validated ? 'validation · ' : ''}{!inc.verified ? 'approval · ' : ''}{!inc.assignedTo ? 'team assignment' : ''}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })()}
                         </div>
                       )
                     })}
@@ -612,7 +638,7 @@ export default function ResponseManagement() {
               }
             </div>
 
-            {/* Resolved incidents — vertical cards, protected */}
+            {/* Resolved incidents — card grid, protected */}
             <div className={`${p.card} ${s.resolvedSection}`}>
               <div className={p.sectionHeader}>
                 <span className={p.sectionTitle} style={{ color: '#16a34a' }}>
@@ -626,31 +652,44 @@ export default function ResponseManagement() {
               {incidents.filter(i => i.status === 'Resolved').length === 0
                 ? <div className={p.empty}>No resolved incidents.</div>
                 : (
-                  <div className={s.trackList}>
+                  <div className={s.assignedGrid}>
                     {incidents.filter(i => i.status === 'Resolved').map(inc => {
                       const team = getTeamFromInc(inc)
+                      const members = getMemberNames(team)
                       return (
-                        <div key={inc.id} className={`${s.trackCard} ${s.trackCardResolved}`}>
-                          <div className={s.trackCardLeft}>
-                            <div className={s.trackTitle}>{inc.title}</div>
-                            <div className={s.trackMeta}>
-                              <span>{inc.type}</span>
-                              <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
-                              {team
-                                ? <span className={s.memberChip}><Users size={10} /> {team.name}</span>
-                                : <span style={{ color: '#94a3b8' }}>Unassigned</span>
-                              }
-                              <span style={{ color: '#94a3b8' }}>{new Date(inc.updatedAt).toLocaleDateString()}</span>
-                            </div>
+                        <div key={inc.id} className={`${s.assignCard} ${s.assignCardResolved}`}>
+                          <div className={s.assignCardHeader}>
+                            <span className={s.assignTitle}>{inc.title}</span>
+                            <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
                           </div>
-                          <button
-                            className={s.resolvedStatusBtn}
-                            onClick={() => handleResolvedStatusChange(inc.id, 'Open')}
-                            title={canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
-                            disabled={!canModifyResolved}
-                          >
-                            <Lock size={11} /> Resolved
-                          </button>
+                          <div className={s.assignMeta}>
+                            <span><strong>Type:</strong> {inc.type}</span>
+                            <span><strong>Location:</strong> {inc.location}</span>
+                          </div>
+                          {team && (
+                            <div className={s.teamChip}>
+                              <Users size={13} />
+                              <span>{team.name}</span>
+                              <span className={s.teamSpec}>· {team.specialty}</span>
+                              <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
+                            </div>
+                          )}
+                          {members.length > 0 && (
+                            <div className={s.assignMeta} style={{ marginTop: 4 }}>
+                              {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
+                            </div>
+                          )}
+                          <div style={{ marginTop: 10 }}>
+                            <button
+                              className={s.resolvedStatusBtn}
+                              style={{ width: '100%', justifyContent: 'center' }}
+                              onClick={() => handleResolvedStatusChange(inc.id, 'Open')}
+                              title={canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
+                              disabled={!canModifyResolved}
+                            >
+                              <Lock size={11} /> Resolved — click to reopen
+                            </button>
+                          </div>
                         </div>
                       )
                     })}
