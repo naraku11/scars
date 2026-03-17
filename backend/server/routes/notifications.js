@@ -3,6 +3,7 @@ import pool, { mapNotification } from '../lib/db.js'
 import { authenticate } from '../middleware/auth.js'
 import { emit } from '../lib/socket.js'
 import { cacheGet, cacheSet, cacheDel } from '../lib/cache.js'
+import { sendSmsToTarget, sendEmailToTarget } from '../lib/notify.js'
 
 const router = Router()
 router.use(authenticate)
@@ -36,6 +37,16 @@ router.post('/', async (req, res) => {
     const notification = mapNotification(rows[0])
     cacheDel('notifications')
     emit('notification:sent', notification)
+
+    // Fire external delivery in background — DB record is saved regardless
+    if (type === 'SMS') {
+      sendSmsToTarget(target, title, message)
+        .catch(e => console.error('[SMS] Unhandled error:', e.message))
+    } else if (type === 'Email') {
+      sendEmailToTarget(target, title, message)
+        .catch(e => console.error('[Email] Unhandled error:', e.message))
+    }
+
     res.status(201).json(notification)
   } catch (e) { res.status(400).json({ error: e.message }) }
 })

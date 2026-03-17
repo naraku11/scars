@@ -162,10 +162,10 @@ export default function IncidentManagement() {
                       {inc.createdAt ? new Date(inc.createdAt).toLocaleDateString() : '—'}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap' }}>
+                      <div className={s.actionCell}>
                         {!inc.validated && (
                           <button
-                            className={`${p.btn} ${p.btnWarning} ${p.btnSm}`}
+                            className={`${p.btn} ${p.btnWarning} ${p.btnSm} ${s.actionBtn}`}
                             disabled={busy[`val-${inc.id}`]}
                             onClick={act(`val-${inc.id}`, () => validateIncident(inc.id))}
                           >
@@ -175,14 +175,14 @@ export default function IncidentManagement() {
                         {inc.validated && !inc.verified && inc.status !== 'Rejected' && (
                           <>
                             <button
-                              className={`${p.btn} ${p.btnSuccess} ${p.btnSm}`}
+                              className={`${p.btn} ${p.btnSuccess} ${p.btnSm} ${s.actionBtn}`}
                               disabled={busy[`ver-${inc.id}`]}
                               onClick={act(`ver-${inc.id}`, () => verifyIncident(inc.id))}
                             >
                               {busy[`ver-${inc.id}`] ? '…' : 'Approve'}
                             </button>
                             <button
-                              className={`${p.btn} ${p.btnDanger} ${p.btnSm}`}
+                              className={`${p.btn} ${p.btnDanger} ${p.btnSm} ${s.actionBtn}`}
                               disabled={busy[`rej-${inc.id}`]}
                               onClick={act(`rej-${inc.id}`, () => updateIncident(inc.id, { status: 'Rejected' }))}
                             >
@@ -190,13 +190,14 @@ export default function IncidentManagement() {
                             </button>
                           </>
                         )}
+                        <div className={s.actionSep} />
                         <button
-                          className={`${p.btn} ${p.btnDanger} ${p.btnSm}`}
+                          className={`${p.btn} ${p.btnDanger} ${p.btnSm} ${s.delBtn}`}
                           disabled={busy[`del-${inc.id}`]}
                           onClick={act(`del-${inc.id}`, () => deleteIncident(inc.id))}
                           title="Delete incident"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={11} /> Delete
                         </button>
                       </div>
                     </td>

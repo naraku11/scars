@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS `User` (
   `password`     VARCHAR(191) NOT NULL,
   `avatar`       VARCHAR(191) NOT NULL,
   `profileImage` LONGTEXT,
+  `phone`        VARCHAR(20)  NULL,
   `status`       VARCHAR(191) NOT NULL DEFAULT 'Active',
   `joined`       DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `createdAt`    DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -123,3 +124,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- ── Done ──────────────────────────────────────────────────────────────────────
 -- All tables created. Import seed.sql next to populate default data.
+
+-- ── Migration: add phone column (run on existing databases only) ──────────────
+-- ALTER TABLE `User` ADD COLUMN `phone` VARCHAR(20) NULL AFTER `profileImage`;

@@ -33,7 +33,7 @@ export default pool
 
 export const USER_ROLE_SELECT = `
   SELECT u.id, u.name, u.email, u.password, u.avatar, u.profileImage,
-         u.status, u.joined, u.createdAt, u.updatedAt, u.roleId,
+         u.phone, u.status, u.joined, u.createdAt, u.updatedAt, u.roleId,
          r.id AS role_id, r.name AS role_name, r.description AS role_desc,
          r.color AS role_color, r.level AS role_level, r.permissions AS role_perms
   FROM User u
@@ -69,6 +69,7 @@ export function mapUser(row) {
     email: row.email,
     avatar: row.avatar,
     profileImage: row.profileImage ?? null,
+    phone: row.phone ?? null,
     status: row.status,
     joined: row.joined,
     createdAt: row.createdAt,

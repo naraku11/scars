@@ -5,7 +5,7 @@ import Header from '../components/Header'
 import p from '../components/Page.module.css'
 import s from './UserManagement.module.css'
 
-const initForm = { name: '', email: '', password: '', role: 'Responder', status: 'Active' }
+const initForm = { name: '', email: '', password: '', phone: '', role: 'Responder', status: 'Active' }
 
 // Normalize role name from both API object and mock string
 const roleName = (u) => typeof u?.role === 'object' ? (u.role?.name ?? '') : (u.role ?? '')
@@ -33,7 +33,7 @@ export default function UserManagement() {
     try {
       const role   = roles.find(r => r.name === form.role)
       const avatar = form.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U'
-      await addUser({ ...form, roleId: role?.id, avatar })
+      await addUser({ ...form, roleId: role?.id, avatar, phone: form.phone || undefined })
       setForm(initForm); setShowForm(false)
     } catch (err) {
       setError(err.message || 'Failed to add user.')
@@ -50,6 +50,7 @@ export default function UserManagement() {
       await updateUser(editingUser.id, {
         name:   editingUser.name,
         email:  editingUser.email,
+        phone:  editingUser.phone || undefined,
         status: editingUser.status,
         roleId: role?.id,
       })
@@ -138,6 +139,10 @@ export default function UserManagement() {
                       <input type="password" value={form.password} onChange={e => fc('password', e.target.value)} placeholder="Min. 6 characters" required minLength={6} />
                     </div>
                     <div className={p.field}>
+                      <label>Phone <span style={{ fontSize: 11, color: '#94a3b8' }}>(for SMS alerts)</span></label>
+                      <input type="tel" value={form.phone} onChange={e => fc('phone', e.target.value)} placeholder="+63XXXXXXXXXX" />
+                    </div>
+                    <div className={p.field}>
                       <label>Role</label>
                       <select value={form.role} onChange={e => fc('role', e.target.value)}>
                         {roles.map(r => <option key={r.id}>{r.name}</option>)}
@@ -172,6 +177,10 @@ export default function UserManagement() {
                       <input type="email" value={editingUser.email} onChange={e => setEditingUser(u => ({ ...u, email: e.target.value }))} required />
                     </div>
                     <div className={p.field}>
+                      <label>Phone <span style={{ fontSize: 11, color: '#94a3b8' }}>(for SMS alerts)</span></label>
+                      <input type="tel" value={editingUser.phone ?? ''} onChange={e => setEditingUser(u => ({ ...u, phone: e.target.value }))} placeholder="+63XXXXXXXXXX" />
+                    </div>
+                    <div className={p.field}>
                       <label>Role</label>
                       <select value={editingUser.roleName} onChange={e => setEditingUser(u => ({ ...u, roleName: e.target.value }))}>
                         {roles.map(r => <option key={r.id}>{r.name}</option>)}
@@ -195,7 +204,7 @@ export default function UserManagement() {
             <div className={p.tableWrap}>
               <table>
                 <thead><tr>
-                  <th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th>
+                  <th>User</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th>
                 </tr></thead>
                 <tbody>
                   {filtered.map(u => (
@@ -208,6 +217,7 @@ export default function UserManagement() {
                         </div>
                       </td>
                       <td style={{ color: '#4a7a52', fontSize: 12 }}>{u.email}</td>
+                      <td style={{ color: '#4a7a52', fontSize: 12 }}>{u.phone || <span style={{ color: '#cbd5e1' }}>—</span>}</td>
                       <td><span className={s.roleBadge}>{roleName(u)}</span></td>
                       <td><span className={`badge ${u.status === 'Active' ? 'badge-resolved' : 'badge-rejected'}`}>{u.status}</span></td>
                       <td style={{ fontSize: 11, color: '#4a7a52' }}>

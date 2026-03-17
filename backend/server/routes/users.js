@@ -36,12 +36,12 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, email, password, avatar, roleId, status, joined } = req.body
+    const { name, email, password, avatar, roleId, status, joined, phone } = req.body
     const hashed = await bcrypt.hash(password, 10)
     const joinedDate = joined ? new Date(joined) : new Date()
     const [result] = await pool.execute(
-      'INSERT INTO User (name, email, password, avatar, roleId, status, joined) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [name, email, hashed, avatar, +roleId, status ?? 'Active', joinedDate]
+      'INSERT INTO User (name, email, password, avatar, roleId, status, joined, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, email, hashed, avatar, +roleId, status ?? 'Active', joinedDate, phone ?? null]
     )
     const newId = result.insertId
     const [rows] = await pool.execute(`${USER_ROLE_SELECT} WHERE u.id = ?`, [newId])
@@ -55,13 +55,14 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = +req.params.id
-    const { name, email, password, avatar, roleId, status } = req.body
+    const { name, email, password, avatar, roleId, status, phone } = req.body
     const fields = [], vals = []
     if (name     !== undefined) { fields.push('name = ?');     vals.push(name) }
     if (email    !== undefined) { fields.push('email = ?');    vals.push(email) }
     if (avatar   !== undefined) { fields.push('avatar = ?');   vals.push(avatar) }
     if (status   !== undefined) { fields.push('status = ?');   vals.push(status) }
     if (roleId   !== undefined) { fields.push('roleId = ?');   vals.push(+roleId) }
+    if (phone    !== undefined) { fields.push('phone = ?');    vals.push(phone || null) }
     if (password)               { fields.push('password = ?'); vals.push(await bcrypt.hash(password, 10)) }
     if (fields.length) {
       vals.push(id)
