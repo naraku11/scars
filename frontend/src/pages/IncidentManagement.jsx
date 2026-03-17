@@ -27,6 +27,7 @@ export default function IncidentManagement() {
   const [error,          setError]          = useState('')
   const [busy,           setBusy]           = useState({})
   const [viewing,        setViewing]        = useState(null)
+  const [incTab,         setIncTab]         = useState('active')
 
   const allTypes    = ['All', ...new Set(incidents.map(i => i.type))]
   const allStatuses = ['All', 'Open', 'In Progress', 'Closed', 'Rejected']
@@ -111,69 +112,90 @@ export default function IncidentManagement() {
           </div>
         </div>
 
-        {/* ── Active Incidents ───────────────────────────────────── */}
-        <div className={p.card}>
-          <div className={p.sectionHeader}>
-            <span className={p.sectionTitle}>Active Incidents ({activeFiltered.length})</span>
-          </div>
-
-          <div className={s.filterBar}>
-            <div className={s.searchBox}>
-              <Search size={14} className={s.searchIcon} />
-              <input placeholder="Search incidents…" value={search} onChange={e => setSearch(e.target.value)} className={s.searchInput} />
-            </div>
-            <select value={filterStatus}   onChange={e => setFilterStatus(e.target.value)}   className={s.filterSelect}>
-              {allStatuses.map(st => <option key={st}>{st}</option>)}
-            </select>
-            <select value={filterType}     onChange={e => setFilterType(e.target.value)}     className={s.filterSelect}>
-              {allTypes.map(t => <option key={t}>{t}</option>)}
-            </select>
-            <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className={s.filterSelect}>
-              {['All', ...PRIORITIES].map(pr => <option key={pr}>{pr}</option>)}
-            </select>
-          </div>
-
-          <div className={p.tableWrap}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Incident</th><th>Type</th><th>Priority</th><th>Status</th>
-                  <th>Reporter</th><th>Assigned To</th><th>Progress</th><th>Date</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeFiltered.map(inc => <IncidentRow key={inc.id} inc={inc} busy={busy} act={act} setViewing={setViewing} validateIncident={validateIncident} verifyIncident={verifyIncident} updateIncident={updateIncident} deleteIncident={deleteIncident} allowDelete />)}
-                {!activeFiltered.length && <tr><td colSpan={9} className={p.empty}>No active incidents match the current filters.</td></tr>}
-              </tbody>
-            </table>
-          </div>
+        {/* ── Tabs ───────────────────────────────────────────────── */}
+        <div className={p.subTabs}>
+          <button className={`${p.subTab} ${incTab === 'active' ? p.activeSubTab : ''}`} onClick={() => setIncTab('active')}>
+            Active ({activeFiltered.length})
+          </button>
+          <button className={`${p.subTab} ${incTab === 'resolved' ? p.activeSubTab : ''}`} onClick={() => setIncTab('resolved')}>
+            Resolved ({resolvedFiltered.length})
+          </button>
         </div>
+
+        {/* ── Active Incidents ───────────────────────────────────── */}
+        {incTab === 'active' && (
+          <div className={p.card}>
+            <div className={p.sectionHeader}>
+              <span className={p.sectionTitle}>Active Incidents ({activeFiltered.length})</span>
+            </div>
+
+            <div className={s.filterBar}>
+              <div className={s.searchBox}>
+                <Search size={14} className={s.searchIcon} />
+                <input placeholder="Search incidents…" value={search} onChange={e => setSearch(e.target.value)} className={s.searchInput} />
+              </div>
+              <select value={filterStatus}   onChange={e => setFilterStatus(e.target.value)}   className={s.filterSelect}>
+                {allStatuses.map(st => <option key={st}>{st}</option>)}
+              </select>
+              <select value={filterType}     onChange={e => setFilterType(e.target.value)}     className={s.filterSelect}>
+                {allTypes.map(t => <option key={t}>{t}</option>)}
+              </select>
+              <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className={s.filterSelect}>
+                {['All', ...PRIORITIES].map(pr => <option key={pr}>{pr}</option>)}
+              </select>
+            </div>
+
+            <div className={p.tableWrap}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Incident</th><th>Type</th><th>Priority</th><th>Status</th>
+                    <th>Reporter</th><th>Assigned To</th><th>Progress</th><th>Date</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeFiltered.map(inc => <IncidentRow key={inc.id} inc={inc} busy={busy} act={act} setViewing={setViewing} validateIncident={validateIncident} verifyIncident={verifyIncident} updateIncident={updateIncident} deleteIncident={deleteIncident} allowDelete />)}
+                  {!activeFiltered.length && <tr><td colSpan={9} className={p.empty}>No active incidents match the current filters.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* ── Resolved Incidents ─────────────────────────────────── */}
-        <div className={`${p.card} ${s.resolvedCard}`} style={{ marginTop: 20 }}>
-          <div className={p.sectionHeader}>
-            <span className={p.sectionTitle} style={{ color: '#16a34a' }}>
-              <CheckCircle size={15} color="#16a34a" style={{ marginRight: 4 }} />
-              Resolved Incidents ({resolvedFiltered.length})
-            </span>
-            <span style={{ fontSize: 12, color: '#4a7a52' }}>Read-only — resolved records cannot be deleted</span>
-          </div>
+        {incTab === 'resolved' && (
+          <div className={`${p.card} ${s.resolvedCard}`}>
+            <div className={p.sectionHeader}>
+              <span className={p.sectionTitle} style={{ color: '#16a34a' }}>
+                <CheckCircle size={15} color="#16a34a" style={{ marginRight: 4 }} />
+                Resolved Incidents ({resolvedFiltered.length})
+              </span>
+              <span style={{ fontSize: 12, color: '#4a7a52' }}>Read-only — resolved records cannot be deleted</span>
+            </div>
 
-          <div className={p.tableWrap}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Incident</th><th>Type</th><th>Priority</th><th>Status</th>
-                  <th>Reporter</th><th>Assigned To</th><th>Progress</th><th>Date</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resolvedFiltered.map(inc => <IncidentRow key={inc.id} inc={inc} busy={busy} act={act} setViewing={setViewing} validateIncident={validateIncident} verifyIncident={verifyIncident} updateIncident={updateIncident} deleteIncident={deleteIncident} allowDelete={false} />)}
-                {!resolvedFiltered.length && <tr><td colSpan={9} className={p.empty}>No resolved incidents yet.</td></tr>}
-              </tbody>
-            </table>
+            <div className={s.filterBar}>
+              <div className={s.searchBox}>
+                <Search size={14} className={s.searchIcon} />
+                <input placeholder="Search resolved…" value={search} onChange={e => setSearch(e.target.value)} className={s.searchInput} />
+              </div>
+            </div>
+
+            <div className={p.tableWrap}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Incident</th><th>Type</th><th>Priority</th><th>Status</th>
+                    <th>Reporter</th><th>Assigned To</th><th>Progress</th><th>Date</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resolvedFiltered.map(inc => <IncidentRow key={inc.id} inc={inc} busy={busy} act={act} setViewing={setViewing} validateIncident={validateIncident} verifyIncident={verifyIncident} updateIncident={updateIncident} deleteIncident={deleteIncident} allowDelete={false} />)}
+                  {!resolvedFiltered.length && <tr><td colSpan={9} className={p.empty}>No resolved incidents yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Detail Modal */}

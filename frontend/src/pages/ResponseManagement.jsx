@@ -218,7 +218,7 @@ export default function ResponseManagement() {
           <button className={`${p.tab} ${tab === 'assign' ? p.activeTab : ''}`} onClick={() => changeTab('assign', 'unassigned')}>
             <Zap size={14} /> Assignments
           </button>
-          <button className={`${p.tab} ${tab === 'track' ? p.activeTab : ''}`} onClick={() => changeTab('track', 'manual')}>
+          <button className={`${p.tab} ${tab === 'track' ? p.activeTab : ''}`} onClick={() => changeTab('track', 'active')}>
             <Shield size={14} /> Status Tracking
           </button>
         </div>
@@ -565,138 +565,150 @@ export default function ResponseManagement() {
         {/* ══════════════ STATUS TRACKING TAB ══════════════ */}
         {tab === 'track' && (
           <>
-            {/* Active incidents — card grid */}
-            <div className={p.card}>
-              <div className={p.sectionHeader}>
-                <span className={p.sectionTitle}>
-                  Active Incidents ({incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length})
-                </span>
-                <div className={s.legend}>
-                  <span className={s.legendDot} style={{ background: '#ef4444' }} /> Open
-                  <span className={s.legendDot} style={{ background: '#f59e0b', marginLeft: 10 }} /> In Progress
-                </div>
-              </div>
-              {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length === 0
-                ? <div className={p.empty}>No active incidents.</div>
-                : (
-                  <div className={s.assignedGrid}>
-                    {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').map(inc => {
-                      const team = getTeamFromInc(inc)
-                      const members = getMemberNames(team)
-                      return (
-                        <div key={inc.id} className={s.assignCard}>
-                          <div className={s.assignCardHeader}>
-                            <span className={s.assignTitle}>{inc.title}</span>
-                            <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
-                          </div>
-                          <div className={s.assignMeta}>
-                            <span><strong>Type:</strong> {inc.type}</span>
-                            <span><strong>Location:</strong> {inc.location}</span>
-                          </div>
-                          {team && (
-                            <div className={s.teamChip}>
-                              <Users size={13} />
-                              <span>{team.name}</span>
-                              <span className={s.teamSpec}>· {team.specialty}</span>
-                              <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
-                            </div>
-                          )}
-                          {members.length > 0 && (
-                            <div className={s.assignMeta} style={{ marginTop: 4 }}>
-                              {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
-                            </div>
-                          )}
-                          {(() => {
-                            const canResolve = inc.validated && inc.verified && inc.assignedTo
-                            return (
-                              <div style={{ marginTop: 10 }}>
-                                <select
-                                  value={inc.status}
-                                  onChange={e => handleStatus(inc.id, e.target.value)}
-                                  className={s.statusSelect}
-                                  style={{ width: '100%', borderColor: inc.status === 'Open' ? '#ef4444' : '#f59e0b' }}
-                                >
-                                  {STATUSES.map(st => (
-                                    <option key={st} value={st} disabled={st === 'Resolved' && !canResolve}>
-                                      {st}{st === 'Resolved' && !canResolve ? ' (needs validation, approval & team)' : ''}
-                                    </option>
-                                  ))}
-                                </select>
-                                {!canResolve && (
-                                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4, lineHeight: 1.4 }}>
-                                    Resolve requires: {!inc.validated ? 'validation · ' : ''}{!inc.verified ? 'approval · ' : ''}{!inc.assignedTo ? 'team assignment' : ''}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })()}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              }
+            <div className={p.subTabs}>
+              <button className={`${p.subTab} ${subTab === 'active' ? p.activeSubTab : ''}`} onClick={() => setSubTab('active')}>
+                Active ({incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length})
+              </button>
+              <button className={`${p.subTab} ${subTab === 'resolved' ? p.activeSubTab : ''}`} onClick={() => setSubTab('resolved')}>
+                Resolved ({incidents.filter(i => i.status === 'Resolved').length})
+              </button>
             </div>
 
-            {/* Resolved incidents — card grid, protected */}
-            <div className={`${p.card} ${s.resolvedSection}`}>
-              <div className={p.sectionHeader}>
-                <span className={p.sectionTitle} style={{ color: '#16a34a' }}>
-                  <CheckCircle size={15} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
-                  Resolved Incidents ({incidents.filter(i => i.status === 'Resolved').length})
-                </span>
-                <span className={s.resolvedNote}>
-                  <Lock size={11} /> Password required to reopen
-                </span>
-              </div>
-              {incidents.filter(i => i.status === 'Resolved').length === 0
-                ? <div className={p.empty}>No resolved incidents.</div>
-                : (
-                  <div className={s.assignedGrid}>
-                    {incidents.filter(i => i.status === 'Resolved').map(inc => {
-                      const team = getTeamFromInc(inc)
-                      const members = getMemberNames(team)
-                      return (
-                        <div key={inc.id} className={`${s.assignCard} ${s.assignCardResolved}`}>
-                          <div className={s.assignCardHeader}>
-                            <span className={s.assignTitle}>{inc.title}</span>
-                            <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
-                          </div>
-                          <div className={s.assignMeta}>
-                            <span><strong>Type:</strong> {inc.type}</span>
-                            <span><strong>Location:</strong> {inc.location}</span>
-                          </div>
-                          {team && (
-                            <div className={s.teamChip}>
-                              <Users size={13} />
-                              <span>{team.name}</span>
-                              <span className={s.teamSpec}>· {team.specialty}</span>
-                              <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
-                            </div>
-                          )}
-                          {members.length > 0 && (
-                            <div className={s.assignMeta} style={{ marginTop: 4 }}>
-                              {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
-                            </div>
-                          )}
-                          <div style={{ marginTop: 10 }}>
-                            <button
-                              className={s.resolvedStatusBtn}
-                              style={{ width: '100%', justifyContent: 'center' }}
-                              onClick={() => handleResolvedStatusChange(inc.id, 'Open')}
-                              title={canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
-                              disabled={!canModifyResolved}
-                            >
-                              <Lock size={11} /> Resolved — click to reopen
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
+            {/* ── Active sub-tab ── */}
+            {subTab === 'active' && (
+              <div className={p.card}>
+                <div className={p.sectionHeader}>
+                  <span className={p.sectionTitle}>
+                    Active Incidents ({incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length})
+                  </span>
+                  <div className={s.legend}>
+                    <span className={s.legendDot} style={{ background: '#ef4444' }} /> Open
+                    <span className={s.legendDot} style={{ background: '#f59e0b', marginLeft: 10 }} /> In Progress
                   </div>
-                )
-              }
-            </div>
+                </div>
+                {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length === 0
+                  ? <div className={p.empty}>No active incidents.</div>
+                  : (
+                    <div className={s.assignedGrid}>
+                      {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').map(inc => {
+                        const team = getTeamFromInc(inc)
+                        const members = getMemberNames(team)
+                        const canResolve = inc.validated && inc.verified && inc.assignedTo
+                        return (
+                          <div key={inc.id} className={s.assignCard}>
+                            <div className={s.assignCardHeader}>
+                              <span className={s.assignTitle}>{inc.title}</span>
+                              <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
+                            </div>
+                            <div className={s.assignMeta}>
+                              <span><strong>Type:</strong> {inc.type}</span>
+                              <span><strong>Location:</strong> {inc.location}</span>
+                            </div>
+                            {team && (
+                              <div className={s.teamChip}>
+                                <Users size={13} />
+                                <span>{team.name}</span>
+                                <span className={s.teamSpec}>· {team.specialty}</span>
+                                <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
+                              </div>
+                            )}
+                            {members.length > 0 && (
+                              <div className={s.assignMeta} style={{ marginTop: 4 }}>
+                                {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
+                              </div>
+                            )}
+                            <div style={{ marginTop: 10 }}>
+                              <select
+                                value={inc.status}
+                                onChange={e => handleStatus(inc.id, e.target.value)}
+                                className={s.statusSelect}
+                                style={{ width: '100%', borderColor: inc.status === 'Open' ? '#ef4444' : '#f59e0b' }}
+                              >
+                                {STATUSES.map(st => (
+                                  <option key={st} value={st} disabled={st === 'Resolved' && !canResolve}>
+                                    {st}{st === 'Resolved' && !canResolve ? ' (needs validation, approval & team)' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              {!canResolve && (
+                                <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4, lineHeight: 1.4 }}>
+                                  Resolve requires:{' '}
+                                  {!inc.validated ? 'validation · ' : ''}
+                                  {!inc.verified ? 'approval · ' : ''}
+                                  {!inc.assignedTo ? 'team assignment' : ''}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                }
+              </div>
+            )}
+
+            {/* ── Resolved sub-tab ── */}
+            {subTab === 'resolved' && (
+              <div className={`${p.card} ${s.resolvedSection}`}>
+                <div className={p.sectionHeader}>
+                  <span className={p.sectionTitle} style={{ color: '#16a34a' }}>
+                    <CheckCircle size={15} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
+                    Resolved Incidents ({incidents.filter(i => i.status === 'Resolved').length})
+                  </span>
+                  <span className={s.resolvedNote}>
+                    <Lock size={11} /> Password required to reopen
+                  </span>
+                </div>
+                {incidents.filter(i => i.status === 'Resolved').length === 0
+                  ? <div className={p.empty}>No resolved incidents yet.</div>
+                  : (
+                    <div className={s.assignedGrid}>
+                      {incidents.filter(i => i.status === 'Resolved').map(inc => {
+                        const team = getTeamFromInc(inc)
+                        const members = getMemberNames(team)
+                        return (
+                          <div key={inc.id} className={`${s.assignCard} ${s.assignCardResolved}`}>
+                            <div className={s.assignCardHeader}>
+                              <span className={s.assignTitle}>{inc.title}</span>
+                              <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
+                            </div>
+                            <div className={s.assignMeta}>
+                              <span><strong>Type:</strong> {inc.type}</span>
+                              <span><strong>Location:</strong> {inc.location}</span>
+                            </div>
+                            {team && (
+                              <div className={s.teamChip}>
+                                <Users size={13} />
+                                <span>{team.name}</span>
+                                <span className={s.teamSpec}>· {team.specialty}</span>
+                                <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
+                              </div>
+                            )}
+                            {members.length > 0 && (
+                              <div className={s.assignMeta} style={{ marginTop: 4 }}>
+                                {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
+                              </div>
+                            )}
+                            <div style={{ marginTop: 10 }}>
+                              <button
+                                className={s.resolvedStatusBtn}
+                                style={{ width: '100%', justifyContent: 'center' }}
+                                onClick={() => handleResolvedStatusChange(inc.id, 'Open')}
+                                title={canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
+                                disabled={!canModifyResolved}
+                              >
+                                <Lock size={11} /> Resolved — click to reopen
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                }
+              </div>
+            )}
           </>
         )}
 

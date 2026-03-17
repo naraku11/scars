@@ -111,24 +111,30 @@ export default function OfficerDashboard() {
                         </span>
                       </td>
                       <td style={{ minWidth: 140 }}>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <select
-                            value={assignMap[inc.id] || ''}
-                            onChange={e => setAssignMap(m => ({ ...m, [inc.id]: e.target.value }))}
-                            style={{ fontSize: 11, padding: '3px 6px', flex: 1 }}
-                          >
-                            <option value="">— Team —</option>
-                            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                          </select>
-                          <button
-                            className={`${p.btn} ${p.btnPrimary} ${p.btnSm}`}
-                            disabled={!assignMap[inc.id] || busy[`a${inc.id}`]}
-                            onClick={() => handleAssign(inc)}
-                            style={{ padding: '3px 8px' }}
-                          >
-                            {busy[`a${inc.id}`] ? '…' : 'Assign'}
-                          </button>
-                        </div>
+                        {inc.status === 'Resolved' ? (
+                          <span style={{ fontSize: 11, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <CheckCircle size={12} /> Locked
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <select
+                              value={assignMap[inc.id] || ''}
+                              onChange={e => setAssignMap(m => ({ ...m, [inc.id]: e.target.value }))}
+                              style={{ fontSize: 11, padding: '3px 6px', flex: 1 }}
+                            >
+                              <option value="">— Team —</option>
+                              {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </select>
+                            <button
+                              className={`${p.btn} ${p.btnPrimary} ${p.btnSm}`}
+                              disabled={!assignMap[inc.id] || busy[`a${inc.id}`]}
+                              onClick={() => handleAssign(inc)}
+                              style={{ padding: '3px 8px' }}
+                            >
+                              {busy[`a${inc.id}`] ? '…' : 'Assign'}
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   AlertTriangle, CheckCircle, Clock, Users,
-  Activity, ChevronDown, Bell
+  Activity, ChevronDown, Bell, XCircle
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import Header from '../components/Header'
@@ -109,17 +109,36 @@ export default function ResponderDashboard() {
                         </span>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', align: 'center', gap: 4 }}>
-                          <select
-                            value={inc.status}
-                            onChange={e => handleStatus(inc.id, e.target.value)}
-                            disabled={busy[inc.id]}
-                            style={{ fontSize: 12, padding: '4px 6px' }}
-                          >
-                            {STATUS_OPTIONS.map(st => <option key={st}>{st}</option>)}
-                          </select>
-                          {busy[inc.id] && <span style={{ fontSize: 11, color: '#4a7a52' }}>Saving…</span>}
-                        </div>
+                        {(() => {
+                          const canResolve = inc.validated && inc.verified && inc.assignedTo
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <select
+                                  value={inc.status}
+                                  onChange={e => handleStatus(inc.id, e.target.value)}
+                                  disabled={busy[inc.id]}
+                                  style={{ fontSize: 12, padding: '4px 6px' }}
+                                >
+                                  {STATUS_OPTIONS.map(st => (
+                                    <option key={st} value={st} disabled={st === 'Resolved' && !canResolve}>
+                                      {st}{st === 'Resolved' && !canResolve ? ' (locked)' : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                                {busy[inc.id] && <span style={{ fontSize: 11, color: '#4a7a52' }}>Saving…</span>}
+                              </div>
+                              {!canResolve && (
+                                <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
+                                  Resolve needs:{' '}
+                                  {!inc.validated && 'validation · '}
+                                  {!inc.verified && 'approval · '}
+                                  {!inc.assignedTo && 'team assignment'}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </td>
                     </tr>
                   ))}
