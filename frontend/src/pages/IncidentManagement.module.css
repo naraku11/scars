@@ -313,6 +313,25 @@
 }
 .actionSelect:focus { border-color: #2E7D32; }
 
+/* ── Resolved section ────────────────────────────────────────────────────── */
+.resolvedCard {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.resolvedLock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #16a34a;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 5px 12px;
+}
+
 /* ── Modal footer actions ────────────────────────────────────────────────── */
 .modalActions {
   display: flex;
