@@ -1,13 +1,161 @@
-.chartsGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+/* ── Charts Grid ─────────────────────────────────────────────────────────────── */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 900px) { .chartsGrid { grid-template-columns: 1fr; } }
 
-@media (max-width: 900px) {
-  .chartsGrid { grid-template-columns: 1fr; }
+/* ── KPI Grid ────────────────────────────────────────────────────────────────── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width: 1100px) { .kpiGrid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 600px)  { .kpiGrid { grid-template-columns: repeat(2, 1fr); } }
+
+.kpiCard {
+  background: #fff;
+  border: 1px solid #e2ede3;
+  border-top-width: 3px;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 1px 4px rgba(27,94,32,0.06);
+}
+.kpiIcon {
+  width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 6px;
+}
+.kpiValue { font-size: 26px; font-weight: 800; line-height: 1; }
+.kpiLabel { font-size: 12px; font-weight: 600; color: #1a2e1c; }
+.kpiSub   { font-size: 11px; color: #94a3b8; }
+
+/* ── Pipeline progress ───────────────────────────────────────────────────────── */
+.pipelineGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 900px) { .pipelineGrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .pipelineGrid { grid-template-columns: 1fr; } }
+
+.pipelineItem { display: flex; flex-direction: column; gap: 6px; }
+.pipelineHeader {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.pipelineLabel { font-size: 12px; font-weight: 600; color: #1a2e1c; }
+.pipelineVal   { font-size: 16px; font-weight: 800; }
+
+.progressBar {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
 }
 
-.pdfHeader { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-.pdfIcon { width: 52px; height: 52px; background: #E8F5E9; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+/* ── Funnel list ─────────────────────────────────────────────────────────────── */
+.funnelList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.funnelItem { display: flex; flex-direction: column; gap: 5px; }
+.funnelLabel {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; color: #475569;
+}
 
-.pdfStats { display: flex; gap: 24px; margin-top: 16px; padding: 16px; background: #F1F8F2; border-radius: 8px; border: 1px solid #C8E6C9; }
-.pdfStat { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.pdfStatNum { font-size: 24px; font-weight: 800; color: #1a2e1c; }
-.pdfStat span:last-child { font-size: 12px; color: #4a7a52; }
+/* ── Filter row (data table) ─────────────────────────────────────────────────── */
+.filterRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.searchWrap {
+  display: flex; align-items: center; gap: 7px;
+  flex: 1; min-width: 180px;
+  border: 1px solid #C8E6C9; border-radius: 6px;
+  padding: 6px 10px; background: #fff;
+}
+.searchInput {
+  border: none; outline: none;
+  font-size: 13px; color: #1a2e1c; flex: 1; background: transparent;
+}
+.filterSel {
+  padding: 7px 10px;
+  border: 1px solid #C8E6C9; border-radius: 6px;
+  font-size: 12px; color: #1a2e1c; background: #fff;
+  outline: none; cursor: pointer;
+}
+.filterSel:focus { border-color: #2E7D32; }
+
+/* ── Legend ──────────────────────────────────────────────────────────────────── */
+.legendRow {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  justify-content: center; margin-top: 6px;
+}
+.legendItem {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: #475569;
+}
+.legendDot {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+}
+
+/* ── Custom tooltip ──────────────────────────────────────────────────────────── */
+.tooltip {
+  background: #1a2e1c; color: #fff;
+  border-radius: 8px; padding: 8px 12px;
+  font-size: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.tooltipLabel {
+  font-weight: 700; margin-bottom: 4px;
+  color: #a7f3d0; font-size: 11px;
+}
+
+/* ── Pills ───────────────────────────────────────────────────────────────────── */
+.pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.rolePill {
+  display: inline-flex; align-items: center;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 99px;
+}
+.rateBadge {
+  display: inline-block;
+  padding: 2px 8px; border-radius: 99px;
+  font-size: 11px; font-weight: 700;
+}
+
+/* ── Export ──────────────────────────────────────────────────────────────────── */
+.pdfHeader { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.pdfIcon {
+  width: 52px; height: 52px; background: #E8F5E9;
+  border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.exportPreview {
+  margin-top: 16px; padding: 16px;
+  background: #F1F8F2; border-radius: 8px; border: 1px solid #C8E6C9;
+}
+.exportStatRow { display: flex; gap: 24px; flex-wrap: wrap; }
+.exportStat { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.exportStatNum { font-size: 22px; font-weight: 800; color: #1a2e1c; }
+.exportStat span:last-child { font-size: 11px; color: #4a7a52; }
