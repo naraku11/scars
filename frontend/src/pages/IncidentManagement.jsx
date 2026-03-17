@@ -82,7 +82,7 @@ export default function IncidentManagement() {
             <div className={p.statInfo}>
               <div className={p.statValue}>{incidents.length}</div>
               <div className={p.statLabel}>Total Incidents</div>
-              <div className={p.statSub}>{filtered.length} matching filters</div>
+              <div className={p.statSub}>{activeFiltered.length} matching filters</div>
             </div>
           </div>
           <div className={p.statCard} style={{ '--stat-accent': '#d97706' }}>

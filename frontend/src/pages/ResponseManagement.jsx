@@ -565,7 +565,7 @@ export default function ResponseManagement() {
         {/* ══════════════ STATUS TRACKING TAB ══════════════ */}
         {tab === 'track' && (
           <>
-            {/* Active incidents */}
+            {/* Active incidents — vertical cards */}
             <div className={p.card}>
               <div className={p.sectionHeader}>
                 <span className={p.sectionTitle}>
@@ -579,45 +579,40 @@ export default function ResponseManagement() {
               {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length === 0
                 ? <div className={p.empty}>No active incidents.</div>
                 : (
-                  <div className={p.tableWrap}>
-                    <table>
-                      <thead><tr><th>Incident</th><th>Type</th><th>Priority</th><th>Assigned Team</th><th>Last Updated</th><th>Status</th></tr></thead>
-                      <tbody>
-                        {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').map(inc => {
-                          const team = getTeamFromInc(inc)
-                          return (
-                            <tr key={inc.id}>
-                              <td style={{ fontWeight: 600 }}>{inc.title}</td>
-                              <td>{inc.type}</td>
-                              <td><span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span></td>
-                              <td>
-                                {team
-                                  ? <span className={s.memberChip}><Users size={11} /> {team.name}</span>
-                                  : <span style={{ color: '#94a3b8', fontSize: 12 }}>Unassigned</span>
-                                }
-                              </td>
-                              <td style={{ fontSize: 11, color: '#4a7a52' }}>{new Date(inc.updatedAt).toLocaleString()}</td>
-                              <td>
-                                <select
-                                  value={inc.status}
-                                  onChange={e => handleStatus(inc.id, e.target.value)}
-                                  className={s.statusSelect}
-                                  style={{ borderColor: inc.status === 'Open' ? '#ef4444' : '#f59e0b' }}
-                                >
-                                  {STATUSES.map(st => <option key={st}>{st}</option>)}
-                                </select>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                  <div className={s.trackList}>
+                    {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').map(inc => {
+                      const team = getTeamFromInc(inc)
+                      return (
+                        <div key={inc.id} className={s.trackCard}>
+                          <div className={s.trackCardLeft}>
+                            <div className={s.trackTitle}>{inc.title}</div>
+                            <div className={s.trackMeta}>
+                              <span>{inc.type}</span>
+                              <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
+                              {team
+                                ? <span className={s.memberChip}><Users size={10} /> {team.name}</span>
+                                : <span style={{ color: '#94a3b8' }}>Unassigned</span>
+                              }
+                              <span style={{ color: '#94a3b8' }}>{new Date(inc.updatedAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <select
+                            value={inc.status}
+                            onChange={e => handleStatus(inc.id, e.target.value)}
+                            className={s.statusSelect}
+                            style={{ borderColor: inc.status === 'Open' ? '#ef4444' : '#f59e0b' }}
+                          >
+                            {STATUSES.map(st => <option key={st}>{st}</option>)}
+                          </select>
+                        </div>
+                      )
+                    })}
                   </div>
                 )
               }
             </div>
 
-            {/* Resolved incidents — protected */}
+            {/* Resolved incidents — vertical cards, protected */}
             <div className={`${p.card} ${s.resolvedSection}`}>
               <div className={p.sectionHeader}>
                 <span className={p.sectionTitle} style={{ color: '#16a34a' }}>
@@ -631,39 +626,34 @@ export default function ResponseManagement() {
               {incidents.filter(i => i.status === 'Resolved').length === 0
                 ? <div className={p.empty}>No resolved incidents.</div>
                 : (
-                  <div className={p.tableWrap}>
-                    <table>
-                      <thead><tr><th>Incident</th><th>Type</th><th>Priority</th><th>Assigned Team</th><th>Resolved At</th><th>Status</th></tr></thead>
-                      <tbody>
-                        {incidents.filter(i => i.status === 'Resolved').map(inc => {
-                          const team = getTeamFromInc(inc)
-                          return (
-                            <tr key={inc.id} className={s.resolvedRow}>
-                              <td style={{ fontWeight: 600 }}>{inc.title}</td>
-                              <td>{inc.type}</td>
-                              <td><span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span></td>
-                              <td>
-                                {team
-                                  ? <span className={s.memberChip}><Users size={11} /> {team.name}</span>
-                                  : <span style={{ color: '#94a3b8', fontSize: 12 }}>Unassigned</span>
-                                }
-                              </td>
-                              <td style={{ fontSize: 11, color: '#4a7a52' }}>{new Date(inc.updatedAt).toLocaleString()}</td>
-                              <td>
-                                <button
-                                  className={s.resolvedStatusBtn}
-                                  onClick={() => handleResolvedStatusChange(inc.id, 'Open')}
-                                  title={canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
-                                  disabled={!canModifyResolved}
-                                >
-                                  <Lock size={11} /> Resolved
-                                </button>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                  <div className={s.trackList}>
+                    {incidents.filter(i => i.status === 'Resolved').map(inc => {
+                      const team = getTeamFromInc(inc)
+                      return (
+                        <div key={inc.id} className={`${s.trackCard} ${s.trackCardResolved}`}>
+                          <div className={s.trackCardLeft}>
+                            <div className={s.trackTitle}>{inc.title}</div>
+                            <div className={s.trackMeta}>
+                              <span>{inc.type}</span>
+                              <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
+                              {team
+                                ? <span className={s.memberChip}><Users size={10} /> {team.name}</span>
+                                : <span style={{ color: '#94a3b8' }}>Unassigned</span>
+                              }
+                              <span style={{ color: '#94a3b8' }}>{new Date(inc.updatedAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <button
+                            className={s.resolvedStatusBtn}
+                            onClick={() => handleResolvedStatusChange(inc.id, 'Open')}
+                            title={canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
+                            disabled={!canModifyResolved}
+                          >
+                            <Lock size={11} /> Resolved
+                          </button>
+                        </div>
+                      )
+                    })}
                   </div>
                 )
               }

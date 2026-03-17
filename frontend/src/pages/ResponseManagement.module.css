@@ -170,6 +170,53 @@
   background: #fff; color: #1a2e1c;
 }
 
+/* ── Status Tracking vertical list ──────────────────────────────────────────── */
+.trackList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trackCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e2ede3;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.trackCardResolved {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.trackCardLeft {
+  flex: 1;
+  min-width: 0;
+}
+
+.trackTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a2e1c;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: #4a7a52;
+}
+
 /* ── Resolved Section ────────────────────────────────────────────────────────── */
 .resolvedSection {
   border-color: #bbf7d0 !important;
