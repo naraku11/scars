@@ -28,6 +28,7 @@ const RESPONDER_NAV = [
   { to: '/responder',      label: 'Dashboard',              icon: LayoutDashboard },
   { to: '/incidents',      label: 'Incidents',              icon: AlertTriangle },
   { to: '/notifications',  label: 'Notifications',          icon: Bell },
+  { to: '/reports',        label: 'Reporting & Analytics',  icon: BarChart2 },
 ]
 
 const STUDENT_NAV = [

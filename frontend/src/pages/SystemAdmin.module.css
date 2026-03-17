@@ -45,6 +45,10 @@
 
 @media (max-width: 480px) {
   .backupInfoRow { grid-template-columns: 1fr; }
+  .autoToggleRow { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .logoSection { gap: 14px; }
+  .logoBtns { flex-direction: column; }
+  .logoBtns > * { width: 100%; }
 }
 .backupInfoItem {
   padding: 12px 14px; background: #F1F8F2; border: 1px solid #C8E6C9; border-radius: 6px;

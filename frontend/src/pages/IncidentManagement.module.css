@@ -342,3 +342,15 @@
   border-top: 1px solid #e2ede3;
   margin-top: 4px;
 }
+
+@media (max-width: 480px) {
+  .modal { max-height: 95vh; }
+  .modalHeader { padding: 14px 16px 12px; }
+  .modalBody { padding: 14px 16px; gap: 12px; }
+  .infoGrid { grid-template-columns: 1fr; }
+  .actionRow { flex-wrap: wrap; }
+  .actionRow .actionSelect { min-width: 0; }
+  .filterBar { gap: 6px; }
+  .searchBox { min-width: 100%; flex: unset; width: 100%; }
+  .closeBtn { padding: 8px; min-width: 36px; min-height: 36px; }
+}

@@ -40,3 +40,12 @@
 .roleDesc { font-size: 12px; color: #4a7a52; margin-bottom: 12px; line-height: 1.5; }
 .permList { display: flex; flex-wrap: wrap; gap: 5px; }
 .permBadge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+
+@media (max-width: 600px) {
+  .rolesGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .userForm { padding: 14px; }
+  .roleCard { padding: 14px; }
+}

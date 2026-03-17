@@ -11,21 +11,26 @@
   display: flex; gap: 4px;
   border-bottom: 2px solid #C8E6C9;
   margin-bottom: 20px; overflow-x: auto; flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 .tab {
-  padding: 8px 18px; font-size: 13px; font-weight: 600;
+  padding: 10px 18px; font-size: 13px; font-weight: 600;
   border: none; background: none; color: #4a7a52;
   cursor: pointer; border-bottom: 2px solid transparent;
   margin-bottom: -2px; transition: color 0.15s; white-space: nowrap;
+  min-height: 44px; touch-action: manipulation;
 }
 .tab:hover { color: #2E7D32; }
 .activeTab { color: #2E7D32; border-bottom-color: #2E7D32; }
 
 .subTabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
 .subTab {
-  padding: 5px 14px; font-size: 12px; font-weight: 600;
+  padding: 8px 16px; font-size: 12px; font-weight: 600;
   border: 1px solid #C8E6C9; border-radius: 20px;
   background: none; color: #4a7a52; cursor: pointer; transition: all 0.15s;
+  min-height: 36px; touch-action: manipulation;
 }
 .subTab:hover { border-color: #43A047; color: #2E7D32; }
 .activeSubTab { background: #2E7D32; color: #fff; border-color: #2E7D32; }
@@ -42,13 +47,14 @@
 @media (max-width: 480px) { .card { padding: 14px 12px; } }
 
 /* ── Table ────────────────────────────────────── */
-.tableWrap { overflow-x: auto; }
+.tableWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th {
   text-align: left; padding: 10px 14px;
   font-size: 11px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.6px; color: #4a7a52;
   background: #F6FCF6; border-bottom: 2px solid #C8E6C9;
+  white-space: nowrap;
 }
 td {
   padding: 11px 14px; border-bottom: 1px solid #f0f7f0;
@@ -56,6 +62,10 @@ td {
 }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: #F6FCF6; }
+
+@media (max-width: 600px) {
+  th, td { padding: 9px 10px; font-size: 12px; }
+}
 
 /* ── Form ─────────────────────────────────────── */
 .formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -83,9 +93,10 @@ textarea { resize: vertical; min-height: 80px; }
 /* ── Buttons ──────────────────────────────────── */
 .btnRow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .btn {
-  padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
   border: none; cursor: pointer; transition: all 0.15s;
   display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; touch-action: manipulation;
 }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
 

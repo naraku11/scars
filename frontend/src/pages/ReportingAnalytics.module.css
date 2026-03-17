@@ -159,3 +159,14 @@
 .exportStat { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .exportStatNum { font-size: 22px; font-weight: 800; color: #1a2e1c; }
 .exportStat span:last-child { font-size: 11px; color: #4a7a52; }
+
+@media (max-width: 480px) {
+  .kpiCard { padding: 10px 12px; }
+  .kpiValue { font-size: 20px; }
+  .filterRow { flex-direction: column; align-items: stretch; }
+  .searchWrap { min-width: unset; }
+  .filterSel { width: 100%; }
+  .exportStatRow { gap: 14px; }
+  .exportStatNum { font-size: 18px; }
+  .pdfHeader { gap: 10px; }
+}

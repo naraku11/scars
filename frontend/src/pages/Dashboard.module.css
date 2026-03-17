@@ -7,6 +7,11 @@
 
 @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
 
+@media (max-width: 480px) {
+  .statusMeta { width: 80px; }
+  .pct { display: none; }
+}
+
 .tableCard { min-width: 0; }
 .rightCol  { display: flex; flex-direction: column; gap: 16px; }
 
@@ -127,7 +132,8 @@
   text-align: left;
   transition: all 0.15s;
   width: 100%;
-  min-height: unset;
+  min-height: 52px;
+  touch-action: manipulation;
 }
 .qBtn:hover {
   border-color: #2E7D32;

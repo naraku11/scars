@@ -25,6 +25,18 @@
   .spanTwo { grid-column: 1; }
 }
 
+@media (max-width: 600px) {
+  .heroBanner { padding: 16px 14px; gap: 12px; }
+  .heroTitle { font-size: 16px; }
+  .heroSub { font-size: 12px; max-width: 100%; }
+  .heroIcon { width: 46px; height: 46px; border-radius: 10px; }
+  .emergencyRow { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+
+@media (max-width: 480px) {
+  .heroBanner { flex-direction: column; align-items: flex-start; }
+}
+
 /* Right column layout */
 .rightCol {
   display: flex;
