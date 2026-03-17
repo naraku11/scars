@@ -170,6 +170,68 @@
   background: #fff; color: #1a2e1c;
 }
 
+/* ── Resolved Section ────────────────────────────────────────────────────────── */
+.resolvedSection {
+  border-color: #bbf7d0 !important;
+  background: #f0fdf4 !important;
+}
+
+.resolvedRow td {
+  background: #f0fdf4;
+}
+
+.resolvedNote {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: #16a34a;
+  background: #dcfce7; border: 1px solid #bbf7d0;
+  border-radius: 20px; padding: 3px 10px;
+}
+
+.resolvedStatusBtn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700;
+  background: #dcfce7; color: #16a34a; border: 1.5px solid #bbf7d0;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.resolvedStatusBtn:hover:not(:disabled) {
+  background: #bbf7d0; border-color: #4ade80;
+}
+.resolvedStatusBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Password Modal ──────────────────────────────────────────────────────────── */
+.pwOverlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
+  backdrop-filter: blur(2px);
+}
+
+.pwModal {
+  background: #fff; border-radius: 14px;
+  width: 100%; max-width: 380px;
+  padding: 24px 26px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.pwModalHeader {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 700; color: #1a2e1c;
+  margin-bottom: 12px;
+}
+
+.pwModalDesc {
+  font-size: 13px; color: #475569; line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+.pwError {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: #dc2626;
+  background: #fef2f2; border: 1px solid #fecaca;
+  border-radius: 6px; padding: 7px 10px; margin-top: 8px;
+}
+
 /* ── Legend ──────────────────────────────────────────────────────────────────── */
 .legend { display: flex; align-items: center; font-size: 12px; color: #4a7a52; gap: 4px; }
 .legendDot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }

@@ -31,8 +31,9 @@ const del  = (path)        => request('DELETE', path)
 
 // Auth
 export const authApi = {
-  login: (email, password) => post('/auth/login', { email, password }),
-  me:    ()                => get('/auth/me'),
+  login:          (email, password) => post('/auth/login', { email, password }),
+  me:             ()                => get('/auth/me'),
+  verifyPassword: (password)        => post('/auth/verify-password', { password }),
 }
 
 // Users

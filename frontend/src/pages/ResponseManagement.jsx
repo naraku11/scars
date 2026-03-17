@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Zap, Users, CheckCircle, XCircle, Plus, Pencil, Trash2, Shield, UserCheck, ChevronDown, ChevronUp } from 'lucide-react'
+import { Zap, Users, CheckCircle, XCircle, Plus, Pencil, Trash2, Shield, UserCheck, ChevronDown, ChevronUp, Lock } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import { authApi } from '../services/api'
 import Header from '../components/Header'
 import p from '../components/Page.module.css'
 import s from './ResponseManagement.module.css'
@@ -28,7 +29,7 @@ function Avatar({ user, size = 32 }) {
 }
 
 export default function ResponseManagement() {
-  const { incidents, teams, users, assignIncident, updateStatus, addTeam, updateTeam, deleteTeam } = useApp()
+  const { incidents, teams, users, currentUser, assignIncident, updateStatus, addTeam, updateTeam, deleteTeam } = useApp()
 
   const [tab, setTab]         = useState('personnel')
   const [subTab, setSubTab]   = useState('list')
@@ -41,6 +42,12 @@ export default function ResponseManagement() {
   const [form, setForm]           = useState(initTeamForm())
   const [saving, setSaving]       = useState(false)
   const [expandedTeam, setExpandedTeam] = useState(null)
+
+  // Password verify modal (for unlocking resolved status changes)
+  const [pwModal, setPwModal]         = useState(null)  // { incId, newStatus }
+  const [pwInput, setPwInput]         = useState('')
+  const [pwError, setPwError]         = useState('')
+  const [pwLoading, setPwLoading]     = useState(false)
 
   // ── Personnel ─────────────────────────────────────────────────────────────
   const personnel = users.filter(isPersonnel)
@@ -152,6 +159,35 @@ export default function ResponseManagement() {
     if (!window.confirm('Delete this team?')) return
     setError('')
     try { await deleteTeam(id); setSuccess('Team deleted.') } catch (err) { setError(err.message) }
+  }
+
+  // ── Resolved status change — requires password ────────────────────────────
+  const userRoleName = roleName(currentUser)
+  const canModifyResolved = currentUser && userRoleName !== 'Student'
+
+  const handleResolvedStatusChange = (incId, newStatus) => {
+    if (!canModifyResolved) {
+      setError('Students cannot modify resolved incidents.')
+      return
+    }
+    setPwInput('')
+    setPwError('')
+    setPwModal({ incId, newStatus })
+  }
+
+  const submitPasswordVerify = async () => {
+    if (!pwInput.trim()) { setPwError('Please enter your password.'); return }
+    setPwLoading(true); setPwError('')
+    try {
+      await authApi.verifyPassword(pwInput)
+      await updateStatus(pwModal.incId, pwModal.newStatus)
+      setPwModal(null)
+      setSuccess('Status updated.')
+    } catch (err) {
+      setPwError(err.message || 'Incorrect password.')
+    } finally {
+      setPwLoading(false)
+    }
   }
 
   const changeTab = (t, sub) => {
@@ -528,50 +564,145 @@ export default function ResponseManagement() {
 
         {/* ══════════════ STATUS TRACKING TAB ══════════════ */}
         {tab === 'track' && (
-          <div className={p.card}>
-            <div className={p.sectionHeader}>
-              <span className={p.sectionTitle}>Update Incident Status</span>
-              <div className={s.legend}>
-                <span className={s.legendDot} style={{ background: '#ef4444' }} /> Open
-                <span className={s.legendDot} style={{ background: '#f59e0b', marginLeft: 10 }} /> In Progress
-                <span className={s.legendDot} style={{ background: '#22c55e', marginLeft: 10 }} /> Resolved
+          <>
+            {/* Active incidents */}
+            <div className={p.card}>
+              <div className={p.sectionHeader}>
+                <span className={p.sectionTitle}>
+                  Active Incidents ({incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length})
+                </span>
+                <div className={s.legend}>
+                  <span className={s.legendDot} style={{ background: '#ef4444' }} /> Open
+                  <span className={s.legendDot} style={{ background: '#f59e0b', marginLeft: 10 }} /> In Progress
+                </div>
               </div>
+              {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length === 0
+                ? <div className={p.empty}>No active incidents.</div>
+                : (
+                  <div className={p.tableWrap}>
+                    <table>
+                      <thead><tr><th>Incident</th><th>Type</th><th>Priority</th><th>Assigned Team</th><th>Last Updated</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').map(inc => {
+                          const team = getTeamFromInc(inc)
+                          return (
+                            <tr key={inc.id}>
+                              <td style={{ fontWeight: 600 }}>{inc.title}</td>
+                              <td>{inc.type}</td>
+                              <td><span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span></td>
+                              <td>
+                                {team
+                                  ? <span className={s.memberChip}><Users size={11} /> {team.name}</span>
+                                  : <span style={{ color: '#94a3b8', fontSize: 12 }}>Unassigned</span>
+                                }
+                              </td>
+                              <td style={{ fontSize: 11, color: '#4a7a52' }}>{new Date(inc.updatedAt).toLocaleString()}</td>
+                              <td>
+                                <select
+                                  value={inc.status}
+                                  onChange={e => handleStatus(inc.id, e.target.value)}
+                                  className={s.statusSelect}
+                                  style={{ borderColor: inc.status === 'Open' ? '#ef4444' : '#f59e0b' }}
+                                >
+                                  {STATUSES.map(st => <option key={st}>{st}</option>)}
+                                </select>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              }
             </div>
-            <div className={p.tableWrap}>
-              <table>
-                <thead><tr>
-                  <th>Incident</th><th>Type</th><th>Priority</th><th>Assigned Team</th><th>Last Updated</th><th>Status</th>
-                </tr></thead>
-                <tbody>
-                  {incidents.filter(i => i.status !== 'Rejected').map(inc => {
-                    const team = getTeamFromInc(inc)
-                    return (
-                      <tr key={inc.id}>
-                        <td style={{ fontWeight: 600 }}>{inc.title}</td>
-                        <td>{inc.type}</td>
-                        <td><span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span></td>
-                        <td>
-                          {team
-                            ? <span className={s.memberChip}><Users size={11} /> {team.name}</span>
-                            : <span style={{ color: '#94a3b8', fontSize: 12 }}>Unassigned</span>
-                          }
-                        </td>
-                        <td style={{ fontSize: 11, color: '#4a7a52' }}>{new Date(inc.updatedAt).toLocaleString()}</td>
-                        <td>
-                          <select
-                            value={inc.status}
-                            onChange={e => handleStatus(inc.id, e.target.value)}
-                            className={s.statusSelect}
-                            style={{ borderColor: inc.status === 'Open' ? '#ef4444' : inc.status === 'In Progress' ? '#f59e0b' : '#22c55e' }}
-                          >
-                            {STATUSES.map(st => <option key={st}>{st}</option>)}
-                          </select>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+
+            {/* Resolved incidents — protected */}
+            <div className={`${p.card} ${s.resolvedSection}`}>
+              <div className={p.sectionHeader}>
+                <span className={p.sectionTitle} style={{ color: '#16a34a' }}>
+                  <CheckCircle size={15} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
+                  Resolved Incidents ({incidents.filter(i => i.status === 'Resolved').length})
+                </span>
+                <span className={s.resolvedNote}>
+                  <Lock size={11} /> Password required to reopen
+                </span>
+              </div>
+              {incidents.filter(i => i.status === 'Resolved').length === 0
+                ? <div className={p.empty}>No resolved incidents.</div>
+                : (
+                  <div className={p.tableWrap}>
+                    <table>
+                      <thead><tr><th>Incident</th><th>Type</th><th>Priority</th><th>Assigned Team</th><th>Resolved At</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {incidents.filter(i => i.status === 'Resolved').map(inc => {
+                          const team = getTeamFromInc(inc)
+                          return (
+                            <tr key={inc.id} className={s.resolvedRow}>
+                              <td style={{ fontWeight: 600 }}>{inc.title}</td>
+                              <td>{inc.type}</td>
+                              <td><span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span></td>
+                              <td>
+                                {team
+                                  ? <span className={s.memberChip}><Users size={11} /> {team.name}</span>
+                                  : <span style={{ color: '#94a3b8', fontSize: 12 }}>Unassigned</span>
+                                }
+                              </td>
+                              <td style={{ fontSize: 11, color: '#4a7a52' }}>{new Date(inc.updatedAt).toLocaleString()}</td>
+                              <td>
+                                <button
+                                  className={s.resolvedStatusBtn}
+                                  onClick={() => handleResolvedStatusChange(inc.id, 'Open')}
+                                  title={canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
+                                  disabled={!canModifyResolved}
+                                >
+                                  <Lock size={11} /> Resolved
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              }
+            </div>
+          </>
+        )}
+
+        {/* ── Password Verify Modal ── */}
+        {pwModal && (
+          <div className={s.pwOverlay} onClick={() => setPwModal(null)}>
+            <div className={s.pwModal} onClick={e => e.stopPropagation()}>
+              <div className={s.pwModalHeader}>
+                <Lock size={18} />
+                <span>Verify Identity</span>
+              </div>
+              <p className={s.pwModalDesc}>
+                You are about to change a <strong>Resolved</strong> incident's status.<br />
+                Enter your password to confirm.
+              </p>
+              <div className={p.field}>
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={pwInput}
+                  onChange={e => setPwInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && submitPasswordVerify()}
+                  placeholder="Enter your password"
+                  autoFocus
+                />
+              </div>
+              {pwError && (
+                <div className={s.pwError}><XCircle size={13} />{pwError}</div>
+              )}
+              <div className={p.btnRow} style={{ marginTop: 14 }}>
+                <button className={`${p.btn} ${p.btnPrimary}`} onClick={submitPasswordVerify} disabled={pwLoading}>
+                  {pwLoading ? 'Verifying…' : 'Confirm'}
+                </button>
+                <button className={`${p.btn} ${p.btnOutline}`} onClick={() => setPwModal(null)}>Cancel</button>
+              </div>
             </div>
           </div>
         )}
