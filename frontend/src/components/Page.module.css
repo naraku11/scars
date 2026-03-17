@@ -34,6 +34,7 @@
 }
 .subTab:hover { border-color: #43A047; color: #2E7D32; }
 .activeSubTab { background: #2E7D32; color: #fff; border-color: #2E7D32; }
+.activeSubTab:hover { background: #1B5E20; color: #fff; border-color: #1B5E20; }
 
 /* ── Card ─────────────────────────────────────── */
 .card {

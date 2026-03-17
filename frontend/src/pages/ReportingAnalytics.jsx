@@ -531,7 +531,7 @@ export default function ReportingAnalytics() {
             {/* ── Teams ── */}
             {subTab === 'teams' && (
               <>
-                <div className={p.statsRow} style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+                <div className={p.statsRow}>
                   {[
                     { label: 'Total Teams',       value: teams.length,           sub: 'configured',         color:'#2E7D32', bg:'#E8F5E9', icon: Users },
                     { label: 'Available',          value: teams.filter(t=>t.status==='Available').length, sub:'ready to respond', color:'#16a34a', bg:'#dcfce7', icon: CheckCircle },
@@ -626,7 +626,7 @@ export default function ReportingAnalytics() {
             {/* ── Personnel ── */}
             {subTab === 'personnel' && (
               <>
-                <div className={p.statsRow} style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+                <div className={`${p.statsRow} ${s.statsRow3}`}>
                   {[
                     { label: 'Officers',   value: personnel.filter(u => roleName(u) === 'Officer').length,   sub: 'active officers',   color: '#6d28d9', bg: '#ede9fe' },
                     { label: 'Responders', value: personnel.filter(u => roleName(u) === 'Responder').length, sub: 'field responders',   color: '#92400e', bg: '#fef3c7' },
