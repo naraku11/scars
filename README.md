@@ -33,7 +33,7 @@ Campus safety and incident management platform — real-time reporting, response
 | Real-time | Socket.io 4 |
 | Auth | JWT + bcryptjs 3 |
 | Build | Vite 8 |
-| Notifications | Nodemailer (email) + TextBelt (SMS) |
+| Notifications | Nodemailer (email) |
 
 ---
 
