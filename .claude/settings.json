@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(du -sh /f/Upload/Projects/deploy/scars/*)",
+      "Bash(find /f/Upload/Projects/deploy/scars -type d -not -path */node_modules*)",
+      "Bash(wc -l /f/Upload/Projects/deploy/scars/backend/server/routes/*.js /f/Upload/Projects/deploy/scars/backend/server/lib/*.js)",
+      "Bash(wc -l /f/Upload/Projects/deploy/scars/frontend/src/pages/*.jsx)"
+    ]
+  }
+}

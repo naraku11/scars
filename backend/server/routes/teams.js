@@ -34,25 +34,35 @@ async function fetchAllTeams() {
   const teamIds = teams.map(t => t.id)
   const placeholders = teamIds.map(() => '?').join(',')
 
-  const [memberRows] = await pool.execute(
-    `SELECT tm.teamId, tm.userId, u.id, u.name, u.avatar, u.email
-     FROM TeamMember tm INNER JOIN User u ON tm.userId = u.id
-     WHERE tm.teamId IN (${placeholders})`,
-    teamIds
-  )
-  const [incidentRows] = await pool.execute(
-    `SELECT id, title, status, assignedToId FROM Incident WHERE assignedToId IN (${placeholders})`,
-    teamIds
-  )
+  const [memberRows, incidentRows] = await Promise.all([
+    pool.execute(
+      `SELECT tm.teamId, tm.userId, u.id, u.name, u.avatar, u.email
+       FROM TeamMember tm INNER JOIN User u ON tm.userId = u.id
+       WHERE tm.teamId IN (${placeholders})`,
+      teamIds
+    ).then(([rows]) => rows),
+    pool.execute(
+      `SELECT id, title, status, assignedToId FROM Incident WHERE assignedToId IN (${placeholders})`,
+      teamIds
+    ).then(([rows]) => rows),
+  ])
+
+  // Group by teamId using Maps — O(n) instead of O(n*m) filter per team
+  const membersByTeam = new Map()
+  for (const r of memberRows) {
+    if (!membersByTeam.has(r.teamId)) membersByTeam.set(r.teamId, [])
+    membersByTeam.get(r.teamId).push({ userId: r.userId, user: { id: r.id, name: r.name, avatar: r.avatar, email: r.email } })
+  }
+  const incidentsByTeam = new Map()
+  for (const r of incidentRows) {
+    if (!incidentsByTeam.has(r.assignedToId)) incidentsByTeam.set(r.assignedToId, [])
+    incidentsByTeam.get(r.assignedToId).push({ id: r.id, title: r.title, status: r.status })
+  }
 
   return teams.map(team => ({
     ...team,
-    members: memberRows
-      .filter(r => r.teamId === team.id)
-      .map(r => ({ userId: r.userId, user: { id: r.id, name: r.name, avatar: r.avatar, email: r.email } })),
-    incidents: incidentRows
-      .filter(r => r.assignedToId === team.id)
-      .map(r => ({ id: r.id, title: r.title, status: r.status })),
+    members: membersByTeam.get(team.id) || [],
+    incidents: incidentsByTeam.get(team.id) || [],
   }))
 }
 

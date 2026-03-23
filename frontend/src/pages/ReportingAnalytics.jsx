@@ -47,20 +47,32 @@ export default function ReportingAnalytics() {
   const [tableType,   setTableType]   = useState('All')
   const [tablePri,    setTablePri]    = useState('All')
 
-  // ── Derived data ─────────────────────────────────────────────────────────────
-  const resolved     = incidents.filter(i => i.status === 'Resolved')
-  const open         = incidents.filter(i => i.status === 'Open')
-  const inProgress   = incidents.filter(i => i.status === 'In Progress')
-  const rejected     = incidents.filter(i => i.status === 'Rejected')
-  const validated    = incidents.filter(i => i.validated)
-  const verified     = incidents.filter(i => i.verified)
-  const assigned     = incidents.filter(i => i.assignedTo)
-  const pending      = incidents.filter(i => !i.validated && i.status !== 'Rejected')
+  // ── Derived data (memoized — single pass over incidents) ─────────────────────
+  const stats = useMemo(() => {
+    const resolved = [], open = [], inProgress = [], rejected = []
+    const validated = [], verified = [], assigned = [], pending = []
+    for (const i of incidents) {
+      if (i.status === 'Resolved')    resolved.push(i)
+      if (i.status === 'Open')        open.push(i)
+      if (i.status === 'In Progress') inProgress.push(i)
+      if (i.status === 'Rejected')    rejected.push(i)
+      if (i.validated)                validated.push(i)
+      if (i.verified)                 verified.push(i)
+      if (i.assignedTo)               assigned.push(i)
+      if (!i.validated && i.status !== 'Rejected') pending.push(i)
+    }
+    const len = incidents.length
+    return {
+      resolved, open, inProgress, rejected, validated, verified, assigned, pending,
+      resolutionRate:   len ? Math.round((resolved.length / len) * 100) : 0,
+      validationRate:   len ? Math.round((validated.length / len) * 100) : 0,
+      verificationRate: len ? Math.round((verified.length / len) * 100) : 0,
+      assignmentRate:   len ? Math.round((assigned.length / len) * 100) : 0,
+    }
+  }, [incidents])
 
-  const resolutionRate  = incidents.length ? Math.round((resolved.length / incidents.length) * 100) : 0
-  const validationRate  = incidents.length ? Math.round((validated.length / incidents.length) * 100) : 0
-  const verificationRate= incidents.length ? Math.round((verified.length / incidents.length) * 100) : 0
-  const assignmentRate  = incidents.length ? Math.round((assigned.length / incidents.length) * 100) : 0
+  const { resolved, open, inProgress, rejected, validated, verified, assigned, pending,
+          resolutionRate, validationRate, verificationRate, assignmentRate } = stats
 
   // by type
   const byType = useMemo(() => {
@@ -119,14 +131,14 @@ export default function ReportingAnalytics() {
     return days.map(d => ({ day: d, count: m[d] }))
   }, [incidents])
 
-  // validation funnel
-  const funnelData = [
+  // validation funnel (memoized)
+  const funnelData = useMemo(() => [
     { name: 'Reported',    value: incidents.length,   fill: '#2E7D32' },
     { name: 'Validated',   value: validated.length,   fill: '#43A047' },
     { name: 'Verified',    value: verified.length,    fill: '#66BB6A' },
     { name: 'Assigned',    value: assigned.length,    fill: '#f59e0b' },
     { name: 'Resolved',    value: resolved.length,    fill: '#22c55e' },
-  ]
+  ], [incidents.length, validated.length, verified.length, assigned.length, resolved.length])
 
   // team metrics
   const teamMetrics = useMemo(() => teams.map(t => {
@@ -168,7 +180,7 @@ export default function ReportingAnalytics() {
     ).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
   }, [incidents, tableSearch, tableStatus, tableType, tablePri])
 
-  const allTypes = ['All', ...new Set(incidents.map(i => i.type))]
+  const allTypes = useMemo(() => ['All', ...new Set(incidents.map(i => i.type))], [incidents])
 
   // export
   const handleExport = () => {

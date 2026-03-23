@@ -18,6 +18,7 @@ Campus safety and incident management platform — real-time reporting, response
 - [API Reference](#api-reference)
 - [Real-time Events](#real-time-events)
 - [Pages & Access](#pages--access)
+- [Performance Optimizations](#performance-optimizations)
 - [Deployment — Hostinger Business](#deployment--hostinger-business)
 
 ---
@@ -67,7 +68,9 @@ Campus safety and incident management platform — real-time reporting, response
 - Role-based notifications — bell panel filtered per role with unread badge and ring animation
 - Profile management — edit name, email, password, and photo; optional Face++ face verification
 - Dynamic branding — admin uploads logo; updates favicon, tab title, sidebar, login screen, and loading screen
-- TTL in-memory cache per resource (roles 5 min, users 60 s, incidents 30 s) with mutation invalidation
+- TTL in-memory cache with size limits (max 500 entries), auto-eviction, and pattern-based purge
+- gzip/brotli compression on all API responses (~70% payload reduction)
+- Request deduplication — concurrent identical GET requests share a single network call
 - Mobile-responsive with touch-friendly tap targets across all pages
 
 ---
@@ -104,7 +107,7 @@ scars/
 │   ├── server/
 │   │   ├── index.js               Entry point; serves backend/public/ in production
 │   │   ├── lib/db.js              mysql2 pool + row mappers
-│   │   ├── lib/cache.js           TTL in-memory cache
+│   │   ├── lib/cache.js           TTL in-memory cache with size limits & pattern purge
 │   │   ├── lib/notify.js          Email (Nodemailer) + SMS (TextBelt) helpers
 │   │   ├── lib/socket.js          Shared Socket.io emit helper
 │   │   ├── middleware/auth.js     JWT verification middleware
@@ -336,7 +339,7 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 | PUT | `/api/admin/system-config` | Update site name, logo, timezone |
 | GET | `/api/admin/backup-config` | Get backup settings |
 | PUT | `/api/admin/backup-config` | Update backup settings |
-| GET | `/api/health` | `{ ok, db, jwt, env, time }` |
+| GET | `/api/health` | `{ ok, db, cache, jwt, env, time }` |
 
 ---
 
@@ -370,6 +373,49 @@ Socket.io broadcasts after every mutation. `AppContext` patches client state ins
 | Notification System | `/notifications` | Admin, Responder |
 | Reporting & Analytics | `/reports` | Admin, Officer |
 | System Administration | `/admin` | Admin |
+
+---
+
+## Performance Optimizations
+
+### Backend
+
+| Optimization | Impact | Details |
+|---|---|---|
+| **gzip/brotli compression** | ~70% smaller responses | `compression` middleware on all API and static responses |
+| **Database indexes** | Faster filtering/sorting | Indexes on `Incident(status, type, priority, createdAt, assignedToId)`, `Notification(target, sentAt)`, `User(status, roleId)` |
+| **Auth JOIN queries** | 1 query instead of 2 | Login and `/me` use `USER_ROLE_SELECT` join — eliminates separate Role lookup |
+| **Teams parallel queries** | Concurrent DB calls | `fetchAllTeams()` runs member and incident queries via `Promise.all()` |
+| **Teams Map-based grouping** | O(n) instead of O(n*m) | Replaced per-team `.filter()` with `Map` grouping for members and incidents |
+| **Connection pool tuning** | Fewer idle connections | `maxIdle: 5`, `idleTimeout: 60s`, `enableKeepAlive: true` for shared hosting stability |
+| **Cache size limits** | Bounded memory | Max 500 entries with LRU-style eviction; expired entries cleaned on insert |
+| **Cache diagnostics** | Observability | `/api/health` returns `cache: { entries, active, expired }` for monitoring |
+| **Static asset caching** | Faster page loads | `express.static` with `maxAge: '1d'` and `immutable` for hashed Vite bundles |
+| **SPA fallback** | No sync I/O per request | `existsSync` called once at startup instead of on every fallback request |
+
+### Frontend
+
+| Optimization | Impact | Details |
+|---|---|---|
+| **Request deduplication** | Eliminates duplicate fetches | Concurrent identical GET requests share a single `fetch()` promise |
+| **Memoized analytics** | Fewer re-renders | `ReportingAnalytics` derives stats in a single `useMemo` pass instead of 8 separate `.filter()` calls |
+| **Memoized chart data** | Stable references | Funnel data, types list, and all chart aggregations wrapped in `useMemo` |
+
+### Database Indexes
+
+Run on existing databases (already included in `create-tables.sql` for new installs):
+
+```sql
+CREATE INDEX idx_incident_status     ON Incident (status);
+CREATE INDEX idx_incident_type       ON Incident (type);
+CREATE INDEX idx_incident_priority   ON Incident (priority);
+CREATE INDEX idx_incident_created    ON Incident (createdAt);
+CREATE INDEX idx_incident_assigned   ON Incident (assignedToId, status);
+CREATE INDEX idx_notification_target ON Notification (target);
+CREATE INDEX idx_notification_sent   ON Notification (sentAt);
+CREATE INDEX idx_user_status         ON User (status);
+CREATE INDEX idx_user_roleId         ON User (roleId);
+```
 
 ---
 

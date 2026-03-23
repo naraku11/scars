@@ -4,23 +4,40 @@ function getToken() {
   return localStorage.getItem('scars_token')
 }
 
+// Deduplicate concurrent identical GET requests — if two components both
+// call usersApi.list() before the first resolves, they share one fetch.
+const inflight = new Map()
+
 async function request(method, path, body) {
   const headers = { 'Content-Type': 'application/json' }
   const token = getToken()
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  })
+  // Deduplicate GET requests only (mutations must always execute)
+  const dedupeKey = method === 'GET' ? `${method}:${path}` : null
+  if (dedupeKey && inflight.has(dedupeKey)) return inflight.get(dedupeKey)
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(err.error || `HTTP ${res.status}`)
+  const promise = (async () => {
+    const res = await fetch(`${BASE}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error(err.error || `HTTP ${res.status}`)
+    }
+
+    return res.json()
+  })()
+
+  if (dedupeKey) {
+    inflight.set(dedupeKey, promise)
+    promise.finally(() => inflight.delete(dedupeKey))
   }
 
-  return res.json()
+  return promise
 }
 
 const get  = (path)        => request('GET',    path)

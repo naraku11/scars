@@ -4,9 +4,11 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { existsSync } from 'fs'
 import express from 'express'
+import compression from 'compression'
 import cors from 'cors'
 import { Server } from 'socket.io'
 import { setIo }             from './lib/socket.js'
+import { cacheStats }        from './lib/cache.js'
 import pool                  from './lib/db.js'
 import authRoutes            from './routes/auth.js'
 import userRoutes            from './routes/users.js'
@@ -36,6 +38,9 @@ app.use(cors({
   credentials: true,
 }))
 
+// gzip/brotli — reduces JSON & HTML payloads by ~70%
+app.use(compression())
+
 app.use(express.json({ limit: '20mb' }))  // base64 profile/logo images
 
 // ── API routes ────────────────────────────────────────────────────────────────
@@ -55,6 +60,7 @@ app.get('/api/health', async (_, res) => {
     ok: db === 'connected',
     env: process.env.NODE_ENV || 'development',
     db,
+    cache: cacheStats(),
     jwt: !!process.env.JWT_SECRET,
     dbUrl: process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':***@') : 'NOT SET',
     time: new Date().toISOString(),
@@ -67,20 +73,21 @@ app.get('/api/health', async (_, res) => {
 const publicPath = join(__dirname, '../public')
 const indexPath  = join(publicPath, 'index.html')
 
-if (isProd && existsSync(publicPath)) {
-  app.use(express.static(publicPath))
+// Check once at startup — avoids sync I/O on every request
+const hasPublic = existsSync(publicPath)
+const hasIndex  = existsSync(indexPath)
+
+if (isProd && hasPublic) {
+  app.use(express.static(publicPath, { maxAge: '1d', immutable: true }))
 }
 
 // ── SPA fallback ──────────────────────────────────────────────────────────────
 app.get('/*splat', (req, res) => {
-  if (existsSync(indexPath)) {
-    // Production: serve index.html for any client-side route
+  if (hasIndex) {
     res.sendFile(indexPath)
   } else if (isProd) {
-    // Production but not built yet
     res.status(503).send('Frontend not built. Run: npm run build')
   } else {
-    // Development: Express is running but Vite is not — give a helpful hint
     res.status(200).json({
       message: 'SCARS API is running in development mode.',
       frontend: 'Open http://localhost:5173 — start with: cd frontend && npm run dev',

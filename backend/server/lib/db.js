@@ -24,6 +24,10 @@ const pool = mysql.createPool({
   ...getConfig(),
   waitForConnections: true,
   connectionLimit: 10,
+  maxIdle: 5,                 // release idle connections back to the pool
+  idleTimeout: 60_000,        // close idle connections after 60 s
+  enableKeepAlive: true,      // prevent connection drops on shared hosting
+  keepAliveInitialDelay: 10_000,
   charset: 'utf8mb4',
 })
 

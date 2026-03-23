@@ -122,6 +122,19 @@ CREATE TABLE IF NOT EXISTS `SystemConfig` (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- ── Performance Indexes ─────────────────────────────────────────────────────
+-- These speed up dashboard filtering, analytics queries, and list endpoints.
+
+CREATE INDEX IF NOT EXISTS `idx_incident_status`     ON `Incident` (`status`);
+CREATE INDEX IF NOT EXISTS `idx_incident_type`       ON `Incident` (`type`);
+CREATE INDEX IF NOT EXISTS `idx_incident_priority`   ON `Incident` (`priority`);
+CREATE INDEX IF NOT EXISTS `idx_incident_created`    ON `Incident` (`createdAt`);
+CREATE INDEX IF NOT EXISTS `idx_incident_assigned`   ON `Incident` (`assignedToId`, `status`);
+CREATE INDEX IF NOT EXISTS `idx_notification_target` ON `Notification` (`target`);
+CREATE INDEX IF NOT EXISTS `idx_notification_sent`   ON `Notification` (`sentAt`);
+CREATE INDEX IF NOT EXISTS `idx_user_status`         ON `User` (`status`);
+CREATE INDEX IF NOT EXISTS `idx_user_roleId`         ON `User` (`roleId`);
+
 -- ── Done ──────────────────────────────────────────────────────────────────────
 -- All tables created. Import seed.sql next to populate default data.
 
