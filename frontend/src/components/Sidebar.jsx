@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import {
   LayoutDashboard, Users, AlertTriangle, Shield, Bell,
-  BarChart2, Settings, LogOut, ShieldCheck, X, UserCircle
+  BarChart2, Settings, LogOut, ShieldCheck, X, UserCircle, HelpCircle
 } from 'lucide-react'
 import s from './Sidebar.module.css'
 
@@ -35,13 +35,14 @@ const STUDENT_NAV = [
 ]
 
 const PROFILE_ITEM = { to: '/profile', label: 'My Profile', icon: UserCircle }
+const FAQ_ITEM     = { to: '/faq',     label: 'FAQ & Help',  icon: HelpCircle }
 
 function getNavItems(roleName) {
   switch (roleName) {
-    case 'Admin':     return [...ADMIN_NAV,     PROFILE_ITEM]
-    case 'Officer':   return [...OFFICER_NAV,   PROFILE_ITEM]
-    case 'Responder': return [...RESPONDER_NAV, PROFILE_ITEM]
-    default:          return [...STUDENT_NAV,   PROFILE_ITEM]
+    case 'Admin':     return [...ADMIN_NAV,     PROFILE_ITEM, FAQ_ITEM]
+    case 'Officer':   return [...OFFICER_NAV,   PROFILE_ITEM, FAQ_ITEM]
+    case 'Responder': return [...RESPONDER_NAV, PROFILE_ITEM, FAQ_ITEM]
+    default:          return [...STUDENT_NAV,   PROFILE_ITEM, FAQ_ITEM]
   }
 }
 

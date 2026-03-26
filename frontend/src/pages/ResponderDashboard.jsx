@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   AlertTriangle, CheckCircle, Clock, Users,
-  Activity, ChevronDown, Bell, XCircle
+  Activity, ChevronDown, Bell, XCircle, FileText
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import Header from '../components/Header'
@@ -33,6 +33,11 @@ export default function ResponderDashboard() {
   const open       = myIncidents.filter(i => i.status === 'Open').length
   const inProgress = myIncidents.filter(i => i.status === 'In Progress').length
   const resolved   = myIncidents.filter(i => i.status === 'Resolved').length
+
+  // All recent reports (visible to responder regardless of team assignment)
+  const allRecentReports = [...incidents]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 10)
 
   const recentNotifs = [...notifications]
     .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
@@ -88,7 +93,7 @@ export default function ResponderDashboard() {
             <div className={p.tableWrap}>
               <table>
                 <thead><tr>
-                  <th>Incident</th><th>Priority</th><th>Status</th><th>Update Status</th>
+                  <th>Incident</th><th>Reported By</th><th>Priority</th><th>Status</th><th>Update Status</th>
                 </tr></thead>
                 <tbody>
                   {myIncidents.map(inc => (
@@ -96,7 +101,10 @@ export default function ResponderDashboard() {
                       <td>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{inc.title}</div>
                         <div style={{ fontSize: 11, color: '#4a7a52' }}>{inc.location}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{inc.type}</div>
+                        <div style={{ fontSize: 10, color: '#94a3b8' }}>{inc.type} &middot; {inc.createdAt ? new Date(inc.createdAt).toLocaleString() : ''}</div>
+                      </td>
+                      <td style={{ fontSize: 12, color: '#1a2e1c' }}>
+                        {typeof inc.reportedBy === 'object' ? inc.reportedBy?.name : inc.reportedBy || '—'}
                       </td>
                       <td>
                         <span className={s.pill} style={{ background: PRIORITY_COLOR[inc.priority] + '22', color: PRIORITY_COLOR[inc.priority] }}>
@@ -143,9 +151,52 @@ export default function ResponderDashboard() {
                     </tr>
                   ))}
                   {!myIncidents.length && (
-                    <tr><td colSpan={4} className={p.empty}>
+                    <tr><td colSpan={5} className={p.empty}>
                       {myTeam ? 'No incidents assigned to your team.' : 'Join a team to see assigned incidents.'}
                     </td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ── All Recent Reports ──────────────────── */}
+          <div className={p.card} style={{ gridColumn: '1 / -1' }}>
+            <div className={p.sectionHeader}>
+              <span className={p.sectionTitle}><FileText size={15} /> All Recent Reports</span>
+              <span style={{ fontSize: 11, color: '#4a7a52' }}>{allRecentReports.length} latest</span>
+            </div>
+            <div className={p.tableWrap}>
+              <table>
+                <thead><tr>
+                  <th>Title</th><th>Reported By</th><th>Type</th><th>Priority</th><th>Location</th><th>Status</th><th>Submitted</th>
+                </tr></thead>
+                <tbody>
+                  {allRecentReports.map(inc => (
+                    <tr key={inc.id}>
+                      <td style={{ fontWeight: 600, fontSize: 13 }}>{inc.title}</td>
+                      <td style={{ fontSize: 12, color: '#1a2e1c' }}>
+                        {typeof inc.reportedBy === 'object' ? inc.reportedBy?.name : inc.reportedBy || '—'}
+                      </td>
+                      <td style={{ fontSize: 12 }}>{inc.type}</td>
+                      <td>
+                        <span className={s.pill} style={{ background: PRIORITY_COLOR[inc.priority] + '22', color: PRIORITY_COLOR[inc.priority] }}>
+                          {inc.priority}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: 12, color: '#4a7a52' }}>{inc.location}</td>
+                      <td>
+                        <span className={s.pill} style={{ background: STATUS_COLOR[inc.status] + '22', color: STATUS_COLOR[inc.status] }}>
+                          {inc.status}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                        {inc.createdAt ? new Date(inc.createdAt).toLocaleString() : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                  {!allRecentReports.length && (
+                    <tr><td colSpan={7} className={p.empty}>No reports yet.</td></tr>
                   )}
                 </tbody>
               </table>

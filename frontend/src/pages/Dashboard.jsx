@@ -117,7 +117,7 @@ export default function Dashboard() {
               <div className={p.tableWrap}>
                 <table>
                   <thead><tr>
-                    <th>Incident</th><th>Type</th><th>Priority</th><th>Assigned To</th><th>Status</th><th>Date</th>
+                    <th>Incident</th><th>Reported By</th><th>Type</th><th>Priority</th><th>Assigned To</th><th>Status</th><th>Submitted</th>
                   </tr></thead>
                   <tbody>
                     {recent.map(i => (
@@ -125,6 +125,9 @@ export default function Dashboard() {
                         <td>
                           <div style={{ fontWeight: 600, fontSize: 13, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.title}</div>
                           <div style={{ fontSize: 11, color: '#4a7a52' }}>{i.location}</div>
+                        </td>
+                        <td style={{ fontSize: 12, color: '#1a2e1c' }}>
+                          {typeof i.reportedBy === 'object' ? i.reportedBy?.name : i.reportedBy || '—'}
                         </td>
                         <td><span className={s.typeTag}>{i.type}</span></td>
                         <td>
@@ -144,7 +147,7 @@ export default function Dashboard() {
                           }}>{i.status}</span>
                         </td>
                         <td style={{ fontSize: 11, color: '#94a3b8' }}>
-                          {new Date(i.createdAt).toLocaleDateString()}
+                          {new Date(i.createdAt).toLocaleString()}
                         </td>
                       </tr>
                     ))}

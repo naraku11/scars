@@ -172,7 +172,7 @@ export default function StudentDashboard() {
               <div className={p.tableWrap}>
                 <table>
                   <thead><tr>
-                    <th>Title</th><th>Type</th><th>Priority</th><th>Status</th><th>Date</th>
+                    <th>Title</th><th>Type</th><th>Priority</th><th>Status</th><th>Submitted</th>
                   </tr></thead>
                   <tbody>
                     {myReports.map(inc => (
@@ -193,7 +193,7 @@ export default function StudentDashboard() {
                           </span>
                         </td>
                         <td style={{ fontSize: 11, color: '#4a7a52' }}>
-                          {inc.createdAt ? new Date(inc.createdAt).toLocaleDateString() : '—'}
+                          {inc.createdAt ? new Date(inc.createdAt).toLocaleString() : '—'}
                         </td>
                       </tr>
                     ))}

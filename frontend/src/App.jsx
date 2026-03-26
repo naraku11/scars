@@ -14,6 +14,7 @@ import Profile from './pages/Profile'
 import OfficerDashboard from './pages/OfficerDashboard'
 import ResponderDashboard from './pages/ResponderDashboard'
 import StudentDashboard from './pages/StudentDashboard'
+import FaqHelp from './pages/FaqHelp'
 
 export default function App() {
   return (
@@ -35,8 +36,9 @@ export default function App() {
             <Route path="/officer"       element={<OfficerDashboard />} />
             <Route path="/responder"     element={<ResponderDashboard />} />
             <Route path="/student"       element={<StudentDashboard />} />
-            {/* Profile (all roles) */}
+            {/* Shared pages (all roles) */}
             <Route path="/profile"       element={<Profile />} />
+            <Route path="/faq"           element={<FaqHelp />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

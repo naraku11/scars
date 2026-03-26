@@ -35,7 +35,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 export default function ReportingAnalytics() {
-  const { incidents, users, teams } = useApp()
+  const { incidents: allIncidents, users, teams } = useApp()
+
+  // Reports only show Critical and High priority incidents
+  const incidents = useMemo(() => allIncidents.filter(i => i.priority === 'Critical' || i.priority === 'High'), [allIncidents])
 
   const [tab,    setTab]    = useState('overview')
   const [subTab, setSubTab] = useState('charts')
@@ -220,7 +223,7 @@ export default function ReportingAnalytics() {
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className={p.page}>
-      <Header title="Reporting & Analytics" subtitle="Incident reports and system performance metrics" />
+      <Header title="Reporting & Analytics" subtitle="Critical & High priority incident reports and performance metrics" />
       <div className={p.content}>
 
         {/* ── Main Tabs ── */}

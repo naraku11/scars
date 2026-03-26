@@ -140,7 +140,8 @@ export function AppProvider({ children }) {
   // ── Incidents ────────────────────────────────────────────────────────
   const addIncident = async (data) => {
     const inc = await incidentsApi.create({ ...data, reportedById: currentUser?.id })
-    setIncidents(prev => [inc, ...prev])
+    // Don't add to state here — the socket 'incident:created' event handles it
+    // to avoid duplicate entries caused by a race between HTTP response and socket
     return inc
   }
   const updateIncident = async (id, data) => {

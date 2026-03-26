@@ -91,7 +91,7 @@ export default function OfficerDashboard() {
             <div className={p.tableWrap}>
               <table>
                 <thead><tr>
-                  <th>Incident</th><th>Priority</th><th>Status</th><th>Assign</th><th>Actions</th>
+                  <th>Incident</th><th>Reported By</th><th>Priority</th><th>Status</th><th>Assign</th><th>Actions</th>
                 </tr></thead>
                 <tbody>
                   {recent.map(inc => (
@@ -99,6 +99,10 @@ export default function OfficerDashboard() {
                       <td>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{inc.title}</div>
                         <div style={{ fontSize: 11, color: '#4a7a52' }}>{inc.location}</div>
+                        <div style={{ fontSize: 10, color: '#94a3b8' }}>{inc.createdAt ? new Date(inc.createdAt).toLocaleString() : ''}</div>
+                      </td>
+                      <td style={{ fontSize: 12, color: '#1a2e1c' }}>
+                        {typeof inc.reportedBy === 'object' ? inc.reportedBy?.name : inc.reportedBy || '—'}
                       </td>
                       <td>
                         <span className={s.pill} style={{ background: PRIORITY_COLOR[inc.priority] + '22', color: PRIORITY_COLOR[inc.priority] }}>
@@ -159,7 +163,7 @@ export default function OfficerDashboard() {
                       </td>
                     </tr>
                   ))}
-                  {!recent.length && <tr><td colSpan={5} className={p.empty}>No incidents reported.</td></tr>}
+                  {!recent.length && <tr><td colSpan={6} className={p.empty}>No incidents reported.</td></tr>}
                 </tbody>
               </table>
             </div>
