@@ -23,11 +23,12 @@ function getConfig() {
 const pool = mysql.createPool({
   ...getConfig(),
   waitForConnections: true,
-  connectionLimit: 10,
-  maxIdle: 5,                 // release idle connections back to the pool
-  idleTimeout: 60_000,        // close idle connections after 60 s
+  connectionLimit: 4,         // ↓ from 10 — Hostinger process budget
+  queueLimit: 10,             // max queued requests before rejecting
+  maxIdle: 2,                 // ↓ from 5 — keep fewer idle connections
+  idleTimeout: 30_000,        // ↓ from 60 s — release idle connections faster
   enableKeepAlive: true,      // prevent connection drops on shared hosting
-  keepAliveInitialDelay: 10_000,
+  keepAliveInitialDelay: 30_000,
   charset: 'utf8mb4',
 })
 

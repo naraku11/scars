@@ -39,9 +39,14 @@ app.use(cors({
 }))
 
 // gzip/brotli — reduces JSON & HTML payloads by ~70%
-app.use(compression())
+app.use(compression({ level: 6, threshold: 1024 }))
 
-app.use(express.json({ limit: '20mb' }))  // base64 profile/logo images
+// base64 profile/logo images need up to 20 MB; API-only routes need much less
+// Apply a tight limit everywhere, relax only for the two image-upload routes
+app.use((req, res, next) => {
+  const imagePath = req.path === '/api/profile' || req.path === '/api/admin/system-config'
+  express.json({ limit: imagePath ? '20mb' : '1mb' })(req, res, next)
+})
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',          authRoutes)
@@ -105,7 +110,14 @@ const io = new Server(httpServer, {
     : { origin: '*',    methods: ['GET', 'POST'] },
   // polling first — more reliable on shared hosting; upgrades to websocket when available
   transports: ['polling', 'websocket'],
-  allowEIO3: true,   // Engine.io v3 compatibility (some browsers / proxies)
+  // ── Hostinger process-budget tuning ───────────────────────────────────────
+  pingInterval:      25_000,   // heartbeat every 25 s (default 25 s — keep)
+  pingTimeout:       15_000,   // ↓ from 20 s — evict dead sockets faster
+  upgradeTimeout:    10_000,   // time allowed for transport upgrade
+  connectTimeout:    30_000,   // max time to establish connection
+  maxHttpBufferSize: 1e5,      // ↓ 100 KB (default 1 MB) — reduce per-socket memory
+  // ── Drop legacy Engine.io v3 support (saves a compat path per connection) ─
+  // allowEIO3 removed — all modern browsers use EIO4
 })
 
 setIo(io)

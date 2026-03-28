@@ -1,6 +1,13 @@
 import nodemailer from 'nodemailer'
-import twilio from 'twilio'
 import pool from './db.js'
+
+// Twilio is lazy-loaded only when an SMS is actually sent so the heavy
+// SDK does NOT initialize (and spawn internal threads) on every server start.
+let _twilioMod = null
+async function getTwilio() {
+  if (!_twilioMod) _twilioMod = (await import('twilio')).default
+  return _twilioMod
+}
 
 // ── Target → role name mapping ────────────────────────────────────────────────
 const TARGET_ROLE = {
@@ -60,7 +67,8 @@ export async function sendSmsToTarget(target, title, message) {
     return { sent: 0, total: 0, errors: [] }
   }
 
-  const client = twilio(sid, token)
+  const twilioFn = await getTwilio()
+  const client = twilioFn(sid, token)
   const body   = `[UV SCARS] ${title}: ${message}`
   let sent = 0
   const errors = []

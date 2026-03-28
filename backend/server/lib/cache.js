@@ -1,5 +1,5 @@
 const store = new Map()
-const MAX_ENTRIES = 500
+const MAX_ENTRIES = 100  // ↓ from 500 — reduce GC pressure on shared hosting
 
 export function cacheGet(key) {
   const item = store.get(key)
