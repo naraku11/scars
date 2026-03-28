@@ -18,7 +18,7 @@ Campus safety and incident management platform — real-time reporting, response
 - [API Reference](#api-reference)
 - [Real-time Events](#real-time-events)
 - [Pages & Access](#pages--access)
-- [Performance Optimizations](#performance-optimizations)
+- [Performance & Process Tuning](#performance--process-tuning)
 - [Deployment — Hostinger Business](#deployment--hostinger-business)
 
 ---
@@ -29,49 +29,56 @@ Campus safety and incident management platform — real-time reporting, response
 |---|---|
 | Frontend | React 19, React Router v7, Recharts 3, Lucide React |
 | Backend | Express.js 5, Node.js 20+ (ESM) |
-| Database | MySQL 8+ via mysql2 (Prisma CLI for schema management) |
-| Real-time | Socket.io 4 |
+| Database | MySQL 8+ via mysql2 (Prisma CLI for schema management only) |
+| Real-time | Socket.io 4 (polling-first for shared hosting compatibility) |
 | Auth | JWT + bcryptjs 3 |
-| Build | Vite 8 |
-| Notifications | Nodemailer (email) |
+| Build | Vite 8 → output to `backend/public/` |
+| Notifications | Nodemailer (email) + Twilio (SMS, lazy-loaded) |
 
 ---
 
 ## Features
 
 ### Incident Management
-- Full incident lifecycle: **Report → Validate → Verify → Assign Team → Resolve**
-- Incidents cannot be resolved unless validated, verified (approved), and assigned to a response team
+- Full lifecycle: **Report → Validate → Verify → Assign Team → Resolve**
+- Incidents cannot be resolved unless validated, verified, and assigned to a response team
 - Active and Resolved sub-tabs with separate views
-- Resolved status changes require password verification (Admin/Officer/Responder)
+- All reports show **submitter name** and **full timestamp** across every dashboard
 
 ### Response Management
-- **Personnel tab** — browse all Officers and Responders with status and team assignment
-- **Teams tab** — roster view showing members per team; create/edit teams with member picker
-- **Assignments tab** — unassigned and assigned incident cards with team assignment controls
+- **Personnel tab** — browse all Officers and Responders with team assignments
+- **Teams tab** — roster view; create/edit teams with member picker
+- **Assignments tab** — unassigned and assigned incident cards with reassignment controls
 - **Status Tracking tab** — active incidents with live status select; resolved incidents locked behind password confirmation
 
 ### Dashboards (Role-Specific)
-- **Admin** — system overview, incident stats, status breakdown, quick actions, recent activity
-- **Officer** — active incidents table with team assignment column; locked when resolved
-- **Responder** — personal assignment view; status update dropdown with resolution guards
-- **Student** — report an incident; track submitted report status
+- **Admin** — system overview, incident stats, status breakdown, quick actions; recent incidents table includes reporter name and timestamp
+- **Officer** — active incidents with reporter name, timestamp, team assignment column, and validate/verify actions
+- **Responder** — team-assigned incidents with reporter name and timestamp; **All Recent Reports** section shows the latest 10 campus-wide reports regardless of team assignment
+- **Student** — report an incident; track submitted reports with full timestamps
 
 ### Reporting & Analytics
-- **Overview** — 6 KPI cards, pipeline progress rates, monthly area chart, priority bar chart, recent incidents
-- **Incident Reports** — 6 charts (by type, status donut, monthly trend, day-of-week, top locations, validation funnel) + filterable data table with CSV export
-- **Response Metrics** — team performance bar chart, resolution rate progress bars, team summary table; personnel directory
+- Filters to **Critical and High priority incidents only**
+- **Overview** — KPI cards, pipeline progress rates, monthly area chart, priority bar chart, recent incidents
+- **Incident Reports** — charts (by type, status donut, monthly trend, day-of-week, top locations, validation funnel) + filterable data table with CSV export
+- **Response Metrics** — team performance bar chart, resolution rate progress bars, team summary table, personnel directory
 - **Export** — filter by date range, type, status, priority; download as CSV
 
+### FAQ & Help
+- Searchable accordion FAQ organized by role (Students, Officers, Responders, General, Notifications, Reports)
+- Role-specific quick-help tips shown based on the logged-in user's role
+- Emergency contacts and support resources
+- Accessible from sidebar for all roles at `/faq`
+
 ### System
-- Real-time updates via Socket.io — every mutation is broadcast instantly to all clients
+- Real-time updates via Socket.io — every mutation is broadcast to all clients; duplicate-safe (socket-only state update, no race condition)
 - Role-based notifications — bell panel filtered per role with unread badge and ring animation
 - Profile management — edit name, email, password, and photo; optional Face++ face verification
 - Dynamic branding — admin uploads logo; updates favicon, tab title, sidebar, login screen, and loading screen
-- TTL in-memory cache with size limits (max 500 entries), auto-eviction, and pattern-based purge
-- gzip/brotli compression on all API responses (~70% payload reduction)
+- TTL in-memory cache (max 100 entries) with auto-eviction and pattern-based purge
+- gzip compression on all API responses (~70% payload reduction)
 - Request deduplication — concurrent identical GET requests share a single network call
-- Mobile-responsive with touch-friendly tap targets across all pages
+- Mobile-responsive with touch-friendly tap targets
 
 ---
 
@@ -79,9 +86,9 @@ Campus safety and incident management platform — real-time reporting, response
 
 | Role | Level | Dashboard | Incidents | Response | Notifications | Reports | Admin |
 |---|---|---|---|---|---|---|---|
-| Admin | 1 | `/dashboard` | Full | Full | Full | Full | Full |
-| Officer | 2 | `/officer` | Validate/Verify/Assign | View/Assign | — | View | — |
-| Responder | 3 | `/responder` | View/Update status | View/Assign | Receive | — | — |
+| Admin | 1 | `/dashboard` | Full | Full | Full | Full (Critical+High) | Full |
+| Officer | 2 | `/officer` | Validate/Verify/Assign | View/Assign | — | View (Critical+High) | — |
+| Responder | 3 | `/responder` | View/Update status + All Reports | View | Receive | — | — |
 | Student | 4 | `/student` | Report only | — | — | — | — |
 
 Login automatically redirects each role to their dashboard.
@@ -97,8 +104,9 @@ scars/
 │   │   ├── components/            Header, Sidebar, Layout, LoadingScreen, BrandingManager
 │   │   ├── context/AppContext.jsx  Global state, auth, Socket.io listeners
 │   │   ├── pages/                 All page components (one per route)
-│   │   └── services/api.js        Fetch API client (auth, users, incidents, etc.)
-│   ├── static/.htaccess           SPA routing + API proxy (auto-copied into dist)
+│   │   │   └── FaqHelp.jsx        FAQ & Help page (all roles)
+│   │   └── services/api.js        Fetch API client with request deduplication
+│   ├── static/.htaccess           SPA routing + API proxy
 │   ├── index.html
 │   ├── vite.config.js             Dev proxy → :3001 | prod build → ../backend/public/
 │   └── package.json
@@ -106,9 +114,9 @@ scars/
 ├── backend/                       Express + mysql2 REST API
 │   ├── server/
 │   │   ├── index.js               Entry point; serves backend/public/ in production
-│   │   ├── lib/db.js              mysql2 pool + row mappers
-│   │   ├── lib/cache.js           TTL in-memory cache with size limits & pattern purge
-│   │   ├── lib/notify.js          Email (Nodemailer) + SMS (TextBelt) helpers
+│   │   ├── lib/db.js              mysql2 pool (connectionLimit: 4) + row mappers
+│   │   ├── lib/cache.js           TTL in-memory cache (max 100 entries)
+│   │   ├── lib/notify.js          Email (Nodemailer) + SMS (Twilio, lazy-loaded)
 │   │   ├── lib/socket.js          Shared Socket.io emit helper
 │   │   ├── middleware/auth.js     JWT verification middleware
 │   │   └── routes/                auth, users, roles, teams, incidents,
@@ -116,7 +124,6 @@ scars/
 │   ├── prisma/
 │   │   ├── schema.prisma          MySQL schema (Prisma CLI only — not used at runtime)
 │   │   ├── seed.js                Seed script (mysql2)
-│   │   ├── make-seed-sql.js       Generates seed.sql with bcrypt hashes (run locally)
 │   │   ├── create-tables.sql      CREATE TABLE statements for phpMyAdmin import
 │   │   └── seed.sql               Ready-to-import SQL for phpMyAdmin
 │   ├── .env                       Local secrets — never commit
@@ -161,8 +168,7 @@ npm run dev               # Vite on http://localhost:5173
 | URL | Purpose |
 |---|---|
 | `http://localhost:5173` | App (Vite dev server, hot reload) |
-| `http://localhost:3001/api` | API root |
-| `http://localhost:3001/api/health` | Health check endpoint |
+| `http://localhost:3001/api/health` | Health check — `{ ok, db, cache, jwt }` |
 
 ### Default Accounts
 
@@ -184,8 +190,6 @@ npm run dev               # Vite on http://localhost:5173
 
 ### MySQL Connection
 
-Use individual `MYSQL_*` variables — avoids URL special-character encoding issues with passwords.
-
 | Variable | Local (XAMPP) | Hostinger |
 |---|---|---|
 | `MYSQL_HOST` | `127.0.0.1` | *(omit — use socket)* |
@@ -195,7 +199,7 @@ Use individual `MYSQL_*` variables — avoids URL special-character encoding iss
 | `MYSQL_DATABASE` | `scars_db` | `u856082912_scars_db` |
 | `MYSQL_SOCKET` | *(omit)* | `/var/lib/mysql/mysql.sock` |
 
-> Hostinger shared hosting only accepts Unix socket connections. Set `MYSQL_SOCKET` and omit `MYSQL_HOST`/`MYSQL_PORT`.
+> Hostinger shared hosting requires Unix socket connections. Set `MYSQL_SOCKET` and omit `MYSQL_HOST`/`MYSQL_PORT`.
 
 ### Other Variables
 
@@ -206,13 +210,18 @@ Use individual `MYSQL_*` variables — avoids URL special-character encoding iss
 | `PORT` | `3001` | `3001` |
 | `NODE_ENV` | `development` | `production` |
 | `FRONTEND_URL` | `http://localhost:5173` | `https://uv-scars.com` |
-| `SMTP_HOST` | *(blank)* | your SMTP server |
+| `UV_THREADPOOL_SIZE` | *(omit)* | `2` |
+| `SMTP_HOST` | *(blank — email disabled)* | your SMTP server |
 | `SMTP_PORT` | *(blank)* | `587` |
 | `SMTP_USER` | *(blank)* | your email address |
 | `SMTP_PASS` | *(blank)* | your email password |
-| `TEXTBELT_KEY` | *(blank)* | your TextBelt API key |
-| `FACEPP_API_KEY` | *(blank)* | *(optional)* |
-| `FACEPP_API_SECRET` | *(blank)* | *(optional)* |
+| `TWILIO_ACCOUNT_SID` | *(blank — SMS disabled)* | your Twilio Account SID |
+| `TWILIO_AUTH_TOKEN` | *(blank)* | your Twilio Auth Token |
+| `TWILIO_FROM` | *(blank)* | your Twilio phone number |
+| `FACEPP_API_KEY` | *(blank — optional)* | Face++ API key |
+| `FACEPP_API_SECRET` | *(blank — optional)* | Face++ API secret |
+
+> Email and SMS delivery are skipped automatically when credentials are not set — the app still works fully without them.
 
 ---
 
@@ -232,8 +241,7 @@ npm run db:reset     # drop all data and re-apply schema + seed
 1. Import `prisma/create-tables.sql` — creates all tables
 2. Generate seed data locally:
    ```bash
-   cd backend
-   node prisma/make-seed-sql.js
+   cd backend && node prisma/make-seed-sql.js
    ```
 3. Import the generated `prisma/seed.sql` via phpMyAdmin
 
@@ -254,7 +262,7 @@ npm run db:reset     # drop all data and re-apply schema + seed
 | Command | Action |
 |---|---|
 | `npm run dev` | Express + nodemon on :3001 |
-| `npm start` | Production start |
+| `npm start` | Production start (`UV_THREADPOOL_SIZE=2 node --max-old-space-size=256`) |
 | `npm run build:frontend` | Install frontend deps + build into `backend/public/` |
 | `npm run deploy` | prisma generate → db:push → db:seed → build frontend |
 | `npm run db:push` | Sync schema to MySQL |
@@ -290,7 +298,7 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/incidents` | List all incidents |
-| POST | `/api/incidents` | Create incident |
+| POST | `/api/incidents` | Create incident (socket broadcasts to all clients) |
 | PUT | `/api/incidents/:id` | Update incident |
 | DELETE | `/api/incidents/:id` | Delete incident |
 | PATCH | `/api/incidents/:id/validate` | Mark as validated |
@@ -311,7 +319,7 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/notifications` | List all notifications |
-| POST | `/api/notifications` | Send notification (triggers email/SMS) |
+| POST | `/api/notifications` | Send notification (triggers email/SMS if configured) |
 | DELETE | `/api/notifications/:id` | Delete notification |
 
 ### Roles
@@ -345,7 +353,8 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 
 ## Real-time Events
 
-Socket.io broadcasts after every mutation. `AppContext` patches client state instantly without a page reload.
+Socket.io broadcasts after every mutation. `AppContext` patches client state instantly — no page reload needed.
+State updates are socket-only (no duplicate optimistic updates from HTTP responses).
 
 | Event | Trigger |
 |---|---|
@@ -367,6 +376,7 @@ Socket.io broadcasts after every mutation. `AppContext` patches client state ins
 | Responder Dashboard | `/responder` | Responder |
 | Student Dashboard | `/student` | Student |
 | Profile | `/profile` | All roles |
+| FAQ & Help | `/faq` | All roles |
 | User Management | `/users` | Admin |
 | Incident Management | `/incidents` | Admin, Officer |
 | Response Management | `/response` | Admin, Officer, Responder |
@@ -376,34 +386,49 @@ Socket.io broadcasts after every mutation. `AppContext` patches client state ins
 
 ---
 
-## Performance Optimizations
+## Performance & Process Tuning
 
-### Backend
+### Hostinger Process Budget
 
-| Optimization | Impact | Details |
+Target: **< 40 OS threads/processes**. Estimated actual usage: **~8–12 threads** at idle.
+
+| Setting | Value | Location |
 |---|---|---|
-| **gzip/brotli compression** | ~70% smaller responses | `compression` middleware on all API and static responses |
-| **Database indexes** | Faster filtering/sorting | Indexes on `Incident(status, type, priority, createdAt, assignedToId)`, `Notification(target, sentAt)`, `User(status, roleId)` |
-| **Auth JOIN queries** | 1 query instead of 2 | Login and `/me` use `USER_ROLE_SELECT` join — eliminates separate Role lookup |
-| **Teams parallel queries** | Concurrent DB calls | `fetchAllTeams()` runs member and incident queries via `Promise.all()` |
-| **Teams Map-based grouping** | O(n) instead of O(n*m) | Replaced per-team `.filter()` with `Map` grouping for members and incidents |
-| **Connection pool tuning** | Fewer idle connections | `maxIdle: 5`, `idleTimeout: 60s`, `enableKeepAlive: true` for shared hosting stability |
-| **Cache size limits** | Bounded memory | Max 500 entries with LRU-style eviction; expired entries cleaned on insert |
-| **Cache diagnostics** | Observability | `/api/health` returns `cache: { entries, active, expired }` for monitoring |
-| **Static asset caching** | Faster page loads | `express.static` with `maxAge: '1d'` and `immutable` for hashed Vite bundles |
-| **SPA fallback** | No sync I/O per request | `existsSync` called once at startup instead of on every fallback request |
+| `UV_THREADPOOL_SIZE` | `2` | hPanel env var + `npm start` |
+| `--max-old-space-size` | `256 MB` | `npm start` script |
+| MySQL `connectionLimit` | `4` | `lib/db.js` |
+| MySQL `maxIdle` | `2` | `lib/db.js` |
+| MySQL `idleTimeout` | `30 s` | `lib/db.js` |
+| MySQL `queueLimit` | `10` | `lib/db.js` |
+| Socket.io `pingTimeout` | `15 s` | `server/index.js` |
+| Socket.io `maxHttpBufferSize` | `100 KB` | `server/index.js` |
+| Cache `MAX_ENTRIES` | `100` | `lib/cache.js` |
+| Twilio SDK | Lazy-loaded on first SMS | `lib/notify.js` |
+| Express body limit | `1 MB` (API) / `20 MB` (image routes) | `server/index.js` |
 
-### Frontend
+### Backend Optimizations
 
-| Optimization | Impact | Details |
-|---|---|---|
-| **Request deduplication** | Eliminates duplicate fetches | Concurrent identical GET requests share a single `fetch()` promise |
-| **Memoized analytics** | Fewer re-renders | `ReportingAnalytics` derives stats in a single `useMemo` pass instead of 8 separate `.filter()` calls |
-| **Memoized chart data** | Stable references | Funnel data, types list, and all chart aggregations wrapped in `useMemo` |
+| Optimization | Details |
+|---|---|
+| **gzip compression** | `compression({ level: 6, threshold: 1024 })` on all responses |
+| **Database indexes** | Indexes on `Incident(status, type, priority, createdAt, assignedToId)`, `Notification(target, sentAt)`, `User(status, roleId)` |
+| **Auth JOIN queries** | Login + `/me` use `USER_ROLE_SELECT` join — eliminates a separate Role lookup |
+| **Teams parallel queries** | Member and incident queries run via `Promise.all()` |
+| **TTL cache** | 100-entry cap; expired entries evicted on insert |
+| **Static asset caching** | `maxAge: '1d', immutable` for hashed Vite bundles |
+| **SPA fallback** | `existsSync` called once at startup, not on every request |
+
+### Frontend Optimizations
+
+| Optimization | Details |
+|---|---|
+| **Request deduplication** | Concurrent identical GET requests share one `fetch()` promise |
+| **Memoized analytics** | All chart aggregations in `useMemo` — single pass over incidents array |
+| **Socket-only state updates** | `addIncident` / other mutations do not set state directly; socket event is the single source of truth — eliminates duplicate entries |
 
 ### Database Indexes
 
-Run on existing databases (already included in `create-tables.sql` for new installs):
+Already included in `create-tables.sql`. Run on existing databases:
 
 ```sql
 CREATE INDEX idx_incident_status     ON Incident (status);
@@ -421,7 +446,7 @@ CREATE INDEX idx_user_roleId         ON User (roleId);
 
 ## Deployment — Hostinger Business
 
-**Architecture:** `frontend/` builds into `backend/public/`. Express serves both the API and the React SPA. Apache reverse-proxies the domain to Express on port 3001. Socket.io uses polling-first transport for shared hosting compatibility.
+**Architecture:** `frontend/` builds into `backend/public/`. Express serves both the API and the React SPA. Apache reverse-proxies the domain to Express on port 3001.
 
 > `npm` is not on the SSH PATH — always use the **"Run NPM command"** field in hPanel → Node.js panel.
 
@@ -432,46 +457,34 @@ CREATE INDEX idx_user_roleId         ON User (roleId);
 | Name | `u856082912_scars_db` |
 | User | `u856082912_scars` |
 | Host | `localhost` (socket) |
-| Port | `3306` |
 
 ---
 
 ### Step 1 — Add Website
 
-hPanel → **Websites** → **Add Website**
+hPanel → **Websites** → **Add Website** → choose **Node.js Web App** → enter `uv-scars.com`.
 
 ---
 
-### Step 2 — Select Node.js Web App
+### Step 2 — Connect Git Repository
 
-Choose **Node.js Web App** as the website type.
-
----
-
-### Step 3 — Choose Domain
-
-Enter `uv-scars.com` and continue.
+Select **Git repository** → authorize Hostinger → select the **scars** repo, branch `main`.
 
 ---
 
-### Step 4 — Select Git Repository
-
-Choose **Select Git repository**, authorize Hostinger, then select the **scars** repo and branch (`main`).
-
----
-
-### Step 5 — Build Settings
+### Step 3 — Build Settings
 
 | Setting | Value |
 |---|---|
 | Framework preset | `Express` |
 | Node.js version | `20.x` |
 | Root directory | `backend` |
-| Package manager | `npm` |
 | Build command | `npm run build:frontend` |
 | Entry file | `server/index.js` |
 
-**Environment Variables to set:**
+---
+
+### Step 4 — Environment Variables
 
 | Key | Value |
 |---|---|
@@ -483,37 +496,30 @@ Choose **Select Git repository**, authorize Hostinger, then select the **scars**
 | `NODE_ENV` | `production` |
 | `PORT` | `3001` |
 | `FRONTEND_URL` | `https://uv-scars.com` |
+| `UV_THREADPOOL_SIZE` | `2` |
 
 Click **Deploy**.
 
 ---
 
-### Step 6 — Create Tables
+### Step 5 — Create Tables
 
-hPanel → Node.js panel → **Run NPM command**:
-
-```
-run db:push
-```
+hPanel → Node.js panel → **Run NPM command**: `run db:push`
 
 ---
 
-### Step 7 — Seed the Database
+### Step 6 — Seed the Database
 
 **Option A — phpMyAdmin (recommended):**
 
 1. Locally: `cd backend && node prisma/make-seed-sql.js`
-2. hPanel → **Databases** → **phpMyAdmin** → `u856082912_scars_db` → **Import** → choose `prisma/seed.sql` → **Go**
+2. hPanel → **Databases** → **phpMyAdmin** → `u856082912_scars_db` → **Import** → `prisma/seed.sql` → **Go**
 
-**Option B — NPM command:**
-
-```
-run db:seed
-```
+**Option B — NPM command:** `run db:seed`
 
 ---
 
-### Step 8 — Verify
+### Step 7 — Verify
 
 | URL | Expected |
 |---|---|
@@ -524,13 +530,7 @@ run db:seed
 
 ### Updating
 
-Push to the tracked Git branch — Hostinger auto-deploys. Alternatively, click **Redeploy** in the Websites panel.
-
-If `prisma/schema.prisma` changed, run after deploy:
-
-```
-run db:push
-```
+Push to the tracked branch — Hostinger auto-deploys. If `prisma/schema.prisma` changed, run `db:push` after deploy.
 
 ---
 
