@@ -9,18 +9,16 @@ import p from '../components/Page.module.css'
 
 const roleName = (u) => typeof u?.role === 'object' ? u?.role?.name ?? '' : (u?.role ?? '')
 
+// roles: which roles see this section. Admin always sees everything.
 const FAQ_SECTIONS = [
   {
     title: 'General',
     icon: BookOpen,
+    roles: ['Student', 'Officer', 'Responder', 'Admin'],
     items: [
       {
         q: 'What is SCARS?',
         a: 'SCARS (Smart Campus Alert & Response System) is a campus safety incident management system for UV Toledo Campus. It allows students to report incidents, officers to validate and assign response teams, and responders to handle emergencies in real-time.',
-      },
-      {
-        q: 'Who can use SCARS?',
-        a: 'SCARS is available to all campus members with an assigned account. There are four roles: Students (report incidents), Officers (validate and manage incidents), Responders (handle assigned incidents), and Admins (system management).',
       },
       {
         q: 'How do I log in?',
@@ -28,13 +26,14 @@ const FAQ_SECTIONS = [
       },
       {
         q: 'How do I change my password?',
-        a: 'Navigate to "My Profile" from the sidebar menu. You can update your password, name, email, and profile photo from there.',
+        a: 'Click your account avatar in the top-right corner of any page and select "My Profile". You can update your password, name, email, and profile photo from there.',
       },
     ],
   },
   {
-    title: 'Reporting Incidents (Students)',
+    title: 'Reporting Incidents',
     icon: AlertTriangle,
+    roles: ['Student'],
     items: [
       {
         q: 'How do I report an incident?',
@@ -59,12 +58,13 @@ const FAQ_SECTIONS = [
     ],
   },
   {
-    title: 'Incident Management (Officers)',
+    title: 'Incident Management',
     icon: Shield,
+    roles: ['Officer', 'Admin'],
     items: [
       {
         q: 'What does "Validate" mean?',
-        a: 'Validation is the first step in processing a report. As an Officer, you confirm the incident is legitimate and requires attention by clicking the "Validate" button.',
+        a: 'Validation is the first step in processing a report. Confirm the incident is legitimate and requires attention by clicking the "Validate" button.',
       },
       {
         q: 'What does "Verify" mean?',
@@ -72,29 +72,34 @@ const FAQ_SECTIONS = [
       },
       {
         q: 'How do I assign a response team?',
-        a: 'After validating and verifying an incident, select a team from the dropdown in the "Assign" column and click "Assign". The incident status will change to "In Progress" and the response team will be notified.',
+        a: 'After validating and verifying an incident, select a team from the dropdown in the "Assign" column and click "Assign". The incident status will update and the response team will be notified.',
       },
       {
         q: 'Can I send alerts to the campus?',
         a: 'Yes. Use the "Quick Alert" section on your Officer Dashboard to send notifications. Choose the alert type, write the title and message, select the target audience, and click "Send Alert".',
       },
+      {
+        q: 'How do I reject an incident?',
+        a: 'After validating an incident, if the report is found to be inaccurate or a false alarm, click the "Reject" button. The incident status will change to "Rejected" and will be moved out of the active queue.',
+      },
     ],
   },
   {
-    title: 'Response Management (Responders)',
+    title: 'Response Management',
     icon: Users,
+    roles: ['Responder', 'Admin'],
     items: [
       {
         q: 'How do I see incidents assigned to my team?',
-        a: 'Your Responder Dashboard automatically shows all incidents assigned to your team. You can also see all recent campus reports in the "All Recent Reports" section.',
+        a: 'Your Responder Dashboard automatically shows all incidents assigned to your team under "Assigned Incidents". You can also see all recent campus reports in the "All Recent Reports" section.',
       },
       {
-        q: 'How do I update an incident\'s status?',
-        a: 'Use the status dropdown next to each assigned incident to change its status. You can move incidents through: Open → In Progress → Resolved.',
+        q: 'Why is the incident status read-only on my dashboard?',
+        a: 'As a Responder, incident status is managed by Officers and Admins through the Response Management page. Your dashboard is view-only so you can monitor your assigned tasks.',
       },
       {
         q: 'Why can\'t I mark an incident as Resolved?',
-        a: 'An incident can only be resolved when it has been validated, verified, and assigned to a team. If the "Resolved" option appears locked, check which requirements are still pending — they are shown below the dropdown.',
+        a: 'An incident can only be resolved when it has been validated, verified, and assigned to a team. All three conditions must be met before the "Resolved" status becomes available.',
       },
       {
         q: 'What if I\'m not assigned to any team?',
@@ -103,22 +108,51 @@ const FAQ_SECTIONS = [
     ],
   },
   {
-    title: 'Notifications & Alerts',
-    icon: Bell,
+    title: 'Teams & Assignments',
+    icon: Users,
+    roles: ['Admin', 'Officer'],
     items: [
       {
-        q: 'How do notifications work?',
-        a: 'SCARS sends real-time notifications when incidents are created, updated, or resolved. Admins and Officers can also send manual alerts to specific groups (Students, Responders, Officers, or All).',
+        q: 'How does team status work?',
+        a: 'Team status is dynamic. A team automatically shows "On Duty" when it has active incidents assigned to it. When all incidents are resolved or reassigned, the status returns to its configured value (Available or Inactive).',
       },
       {
+        q: 'How do I create or edit a team?',
+        a: 'Go to Response Management → Teams → Manage Teams. Click "New Team" to create one, or the edit icon next to an existing team. You can set the team name, specialty, status, and assign members.',
+      },
+      {
+        q: 'How do I assign an incident to a team?',
+        a: 'In Response Management → Assignments → Unassigned, click "Assign to [Team Name]" on any incident card. You can also use "Auto Assign All" to distribute all unassigned incidents across available teams.',
+      },
+    ],
+  },
+  {
+    title: 'Notifications & Alerts',
+    icon: Bell,
+    roles: ['Student', 'Officer', 'Responder', 'Admin'],
+    items: [
+      {
         q: 'Where can I see my notifications?',
-        a: 'Click the bell icon in the top-right corner of any page. You will see a dropdown with recent notifications. Campus alerts also appear on your dashboard.',
+        a: 'Click the bell icon in the top-right corner of any page. A dropdown shows all recent notifications. Clicking a notification takes you directly to the relevant page.',
+      },
+      {
+        q: 'What are incident alerts in the bell panel?',
+        a: 'When a new incident is reported, Officers and Admins receive an instant in-app alert in the bell dropdown. The alert shows the incident type, location, and priority. Clicking it navigates to Incident Management.',
+      },
+      {
+        q: 'Are there sound alerts?',
+        a: 'Yes. When a new incident is created, Officers and Admins hear an audio alert. The sound differs by priority — Critical plays an urgent triple tone, High plays a double tone, and lower priorities play a single tone.',
+      },
+      {
+        q: 'How do I send a notification to the campus?',
+        a: 'Admins can use the Notification System page. Officers can use the "Quick Alert" panel on their dashboard. You can target All users, or specific groups: Students, Responders, or Officers.',
       },
     ],
   },
   {
     title: 'Reports & Analytics',
     icon: FileText,
+    roles: ['Admin', 'Officer'],
     items: [
       {
         q: 'What data is shown in reports?',
@@ -126,11 +160,26 @@ const FAQ_SECTIONS = [
       },
       {
         q: 'Can I export incident data?',
-        a: 'Yes. Go to Reporting & Analytics → Export tab. You can filter by date range, type, status, and priority, then download the data as a CSV file.',
+        a: 'Yes. Go to Reporting & Analytics → Export tab. Filter by date range, type, status, and priority, then download the data as a CSV file.',
+      },
+    ],
+  },
+  {
+    title: 'System Administration',
+    icon: Shield,
+    roles: ['Admin'],
+    items: [
+      {
+        q: 'How do I manage user accounts?',
+        a: 'Go to User Management from the sidebar. You can create, edit, or deactivate accounts and assign roles. Each user must have a role (Admin, Officer, Responder, or Student).',
       },
       {
-        q: 'Who can access reports?',
-        a: 'Admins and Officers have access to the full Reporting & Analytics page.',
+        q: 'How do I update the campus logo or site name?',
+        a: 'Go to System Administration → Site Settings. Upload a logo image and update the site name. Changes take effect immediately across the sidebar, login screen, and browser tab.',
+      },
+      {
+        q: 'How does the Admin password bypass work?',
+        a: 'When reopening a Resolved incident in Status Tracking, Officers and Responders must enter their password to confirm. Admins bypass this check entirely — resolved incidents can be reopened with a single click.',
       },
     ],
   },
@@ -157,14 +206,17 @@ export default function FaqHelp() {
     setOpenItems(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const filteredSections = FAQ_SECTIONS.map(section => ({
-    ...section,
-    items: section.items.filter(item =>
-      !searchQuery ||
-      item.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.a.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-  })).filter(section => section.items.length > 0)
+  const filteredSections = FAQ_SECTIONS
+    .filter(section => section.roles.includes(role) || !role)
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item =>
+        !searchQuery ||
+        item.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.a.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    }))
+    .filter(section => section.items.length > 0)
 
   return (
     <div className={p.page}>
@@ -194,32 +246,37 @@ export default function FaqHelp() {
               <ul style={{ margin: 0, paddingLeft: 20 }}>
                 <li>To report an incident, click <strong>"Report Now"</strong> on your dashboard</li>
                 <li>Track your reports in the <strong>"My Incident Reports"</strong> table</li>
-                <li>Check <strong>"Campus Alerts"</strong> for important notifications</li>
-                <li>Use <strong>Emergency Contacts</strong> for immediate assistance</li>
+                <li>Check <strong>"Campus Alerts"</strong> on your dashboard for important notices</li>
+                <li>Use <strong>Emergency Contacts</strong> at the bottom of this page for immediate help</li>
+                <li>Update your profile via the <strong>account avatar</strong> in the top-right corner</li>
               </ul>
             )}
             {role === 'Officer' && (
               <ul style={{ margin: 0, paddingLeft: 20 }}>
                 <li><strong>Validate</strong> pending incidents to confirm they are legitimate</li>
-                <li><strong>Verify</strong> validated incidents to approve them for response</li>
-                <li><strong>Assign</strong> a response team from the dropdown to dispatch help</li>
-                <li>Use <strong>Quick Alert</strong> to notify the campus community</li>
+                <li><strong>Verify</strong> validated incidents to approve them for response dispatch</li>
+                <li><strong>Assign</strong> a response team to dispatch help — team status updates automatically</li>
+                <li>Use <strong>Quick Alert</strong> on your dashboard to notify the campus</li>
+                <li>New incidents trigger a <strong>sound alert</strong> and appear in your bell notification panel</li>
               </ul>
             )}
             {role === 'Responder' && (
               <ul style={{ margin: 0, paddingLeft: 20 }}>
-                <li>Check your <strong>Assigned Incidents</strong> for team tasks</li>
-                <li>Update incident status using the <strong>dropdown</strong> in the table</li>
-                <li>View <strong>All Recent Reports</strong> to stay informed of campus activity</li>
-                <li>Contact your Officer if you need to be assigned to a team</li>
+                <li>Check <strong>Assigned Incidents</strong> on your dashboard to see your team's tasks</li>
+                <li>Incident status is <strong>read-only</strong> — updates are managed by Officers and Admins</li>
+                <li>View <strong>All Recent Reports</strong> to stay informed of all campus activity</li>
+                <li>New incidents trigger a <strong>sound alert</strong> and appear in the bell panel</li>
+                <li>Contact your Officer if you are not yet assigned to a team</li>
               </ul>
             )}
             {role === 'Admin' && (
               <ul style={{ margin: 0, paddingLeft: 20 }}>
-                <li>Manage users, roles, and teams in their respective pages</li>
+                <li>Manage users, roles, and teams from their respective sidebar pages</li>
                 <li>Monitor all incidents from the <strong>Dashboard</strong> and <strong>Incident Management</strong></li>
-                <li>View analytics in <strong>Reporting & Analytics</strong> (Critical & High priority)</li>
-                <li>Configure system settings in <strong>System Administration</strong></li>
+                <li>You can <strong>reopen resolved incidents instantly</strong> — no password required for Admin</li>
+                <li>Team status updates <strong>automatically</strong> to "On Duty" when active incidents are assigned</li>
+                <li>View analytics in <strong>Reporting & Analytics</strong> (Critical & High priority incidents)</li>
+                <li>Configure branding and system settings in <strong>System Administration</strong></li>
               </ul>
             )}
           </div>

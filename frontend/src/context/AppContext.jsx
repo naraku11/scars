@@ -62,7 +62,9 @@ export function AppProvider({ children }) {
   const [initialized, setInitialized]     = useState(false)
 
   const currentUserRef = useRef(null)
+  const teamsRef       = useRef([])
   useEffect(() => { currentUserRef.current = currentUser }, [currentUser])
+  useEffect(() => { teamsRef.current = teams }, [teams])
 
   // ── Real-time: Socket.io ─────────────────────────────────────────────
   const socketRef = useRef(null)
@@ -94,9 +96,57 @@ export function AppProvider({ children }) {
         playIncidentSound(inc.priority)
       }
     })
-    socket.on('incident:updated', (inc) =>
-      setIncidents(prev => prev.map(i => i.id === inc.id ? inc : i))
-    )
+    socket.on('incident:updated', (inc) => {
+      setIncidents(prev => {
+        const old = prev.find(i => i.id === inc.id)
+        const u  = currentUserRef.current
+        const rn = typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '')
+
+        // Response alert: assignment change → notify Responders whose team was assigned
+        if (rn === 'Responder' && inc.assignedTo) {
+          const newTeamId = typeof inc.assignedTo === 'object' ? inc.assignedTo.id : inc.assignedTo
+          const oldTeamId = old?.assignedTo
+            ? (typeof old.assignedTo === 'object' ? old.assignedTo.id : old.assignedTo)
+            : null
+          if (newTeamId !== oldTeamId) {
+            const myTeam = teamsRef.current.find(t =>
+              t.members?.some(m => {
+                const mid = typeof m === 'object' ? (m.userId ?? m.user?.id ?? m.id) : m
+                return mid === u?.id
+              })
+            )
+            if (myTeam && myTeam.id === newTeamId) {
+              const teamName = typeof inc.assignedTo === 'object' ? inc.assignedTo.name : myTeam.name
+              setIncidentAlerts(p => [{
+                id:         `assign-${inc.id}-${Date.now()}`,
+                incidentId: inc.id,
+                type:       'Alert',
+                title:      `Incident Assigned to Your Team`,
+                message:    `${inc.title} · ${inc.type} at ${inc.location} assigned to ${teamName}`,
+                target:     'Responders',
+                sentAt:     new Date().toISOString(),
+              }, ...p.slice(0, 49)])
+              playIncidentSound(inc.priority)
+            }
+          }
+        }
+
+        // Response alert: status change → notify Admin and Officer
+        if ((rn === 'Admin' || rn === 'Officer') && old && old.status !== inc.status) {
+          setIncidentAlerts(p => [{
+            id:         `status-${inc.id}-${Date.now()}`,
+            incidentId: inc.id,
+            type:       inc.status === 'Resolved' ? 'Info' : 'Alert',
+            title:      `Incident ${inc.status}`,
+            message:    `${inc.title} · status changed to ${inc.status}`,
+            target:     'Officers',
+            sentAt:     new Date().toISOString(),
+          }, ...p.slice(0, 49)])
+        }
+
+        return prev.map(i => i.id === inc.id ? inc : i)
+      })
+    })
     socket.on('incident:deleted', ({ id }) =>
       setIncidents(prev => prev.filter(i => i.id !== id))
     )

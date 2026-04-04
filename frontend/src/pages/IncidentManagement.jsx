@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import {
   Trash2, CheckCircle, XCircle, Search, Eye, X,
-  MapPin, User, Clock, Tag, Shield, Users
+  MapPin, User, Clock, Tag, Shield, Users, Lock
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import { authApi } from '../services/api'
 import Header from '../components/Header'
 import p from '../components/Page.module.css'
 import s from './IncidentManagement.module.css'
@@ -309,14 +310,25 @@ function IncidentRow({ inc, busy, act, setViewing, validateIncident, verifyIncid
 
 // ── Incident Detail Modal ─────────────────────────────────────────────────────
 function IncidentDetail({ inc, teams, onClose, onAssign, onStatusChange, onValidate, onVerify, onReject, onDelete }) {
-  const [teamId, setTeamId] = useState(inc.assignedTo?.id ?? '')
-  const [status, setStatus] = useState(inc.status)
-  const [busy,   setBusy]   = useState({})
-  const [error,  setError]  = useState('')
+  const { currentUser } = useApp()
+  const [teamId, setTeamId]       = useState(inc.assignedTo?.id ?? '')
+  const [status, setStatus]       = useState(inc.status)
+  const [busy,   setBusy]         = useState({})
+  const [error,  setError]        = useState('')
+  // Admin password override for resolved status
+  const [pwOpen,    setPwOpen]    = useState(false)
+  const [pwInput,   setPwInput]   = useState('')
+  const [pwError,   setPwError]   = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
+  const [unlocked,  setUnlocked]  = useState(false)
+
+  const isAdmin = (typeof currentUser?.role === 'object'
+    ? currentUser.role?.name : currentUser?.role) === 'Admin'
 
   useEffect(() => {
     setTeamId(inc.assignedTo?.id ?? '')
     setStatus(inc.status)
+    setUnlocked(false)
   }, [inc.assignedTo?.id, inc.status])
 
   const act = (key, fn) => async () => {
@@ -324,6 +336,21 @@ function IncidentDetail({ inc, teams, onClose, onAssign, onStatusChange, onValid
     setError('')
     try { await fn() } catch (err) { setError(err.message) }
     finally { setBusy(b => ({ ...b, [key]: false })) }
+  }
+
+  const submitAdminOverride = async () => {
+    if (!pwInput.trim()) { setPwError('Enter your admin password.'); return }
+    setPwLoading(true); setPwError('')
+    try {
+      await authApi.verifyPassword(pwInput)
+      setUnlocked(true)
+      setPwOpen(false)
+      setPwInput('')
+    } catch {
+      setPwError('Incorrect password.')
+    } finally {
+      setPwLoading(false)
+    }
   }
 
   const reporterName = inc.reportedBy
@@ -409,29 +436,90 @@ function IncidentDetail({ inc, teams, onClose, onAssign, onStatusChange, onValid
           {(() => {
             const canResolve = inc.validated && inc.verified && inc.assignedTo
             const resolveBlocked = status === 'Resolved' && !canResolve
+            const isResolved = inc.status === 'Resolved'
+            const statusLocked = isResolved && !unlocked
+
             return (
               <div className={s.actionSection}>
-                <div className={s.actionLabel}><Shield size={13} /> Update Status</div>
-                <div className={s.actionRow}>
-                  <select value={status} onChange={e => setStatus(e.target.value)} className={s.actionSelect}>
-                    {STATUSES.map(st => (
-                      <option key={st} value={st} disabled={st === 'Resolved' && !canResolve}>
-                        {st}{st === 'Resolved' && !canResolve ? ' (requires validation, approval & assignment)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className={`${p.btn} ${p.btnSuccess} ${p.btnSm}`}
-                    disabled={busy.status || status === inc.status || resolveBlocked}
-                    title={resolveBlocked ? 'Incident must be validated, approved, and assigned before resolving' : ''}
-                    onClick={act('status', () => onStatusChange(inc.id, status))}
-                  >
-                    {busy.status ? '…' : 'Update'}
-                  </button>
+                <div className={s.actionLabel} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span><Shield size={13} /> Update Status</span>
+                  {isResolved && isAdmin && !unlocked && (
+                    <button
+                      className={`${p.btn} ${p.btnSm}`}
+                      style={{ fontSize: 11, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', gap: 5 }}
+                      onClick={() => { setPwOpen(true); setPwInput(''); setPwError('') }}
+                    >
+                      <Lock size={11} /> Admin Override
+                    </button>
+                  )}
+                  {unlocked && (
+                    <span style={{ fontSize: 11, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <CheckCircle size={11} /> Unlocked
+                    </span>
+                  )}
                 </div>
-                {resolveBlocked && (
-                  <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <XCircle size={11} /> Must be validated, approved, and assigned to a team before resolving.
+
+                {statusLocked ? (
+                  <div style={{ fontSize: 12, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, padding: '8px 10px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
+                    <Lock size={13} /> Status is locked — incident is resolved
+                    {!isAdmin && <span style={{ color: '#94a3b8', marginLeft: 4 }}>(Admin only)</span>}
+                  </div>
+                ) : (
+                  <>
+                    <div className={s.actionRow}>
+                      <select value={status} onChange={e => setStatus(e.target.value)} className={s.actionSelect}>
+                        {STATUSES.map(st => (
+                          <option key={st} value={st} disabled={st === 'Resolved' && !canResolve}>
+                            {st}{st === 'Resolved' && !canResolve ? ' (requires validation, approval & assignment)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className={`${p.btn} ${p.btnSuccess} ${p.btnSm}`}
+                        disabled={busy.status || status === inc.status || resolveBlocked}
+                        onClick={act('status', () => onStatusChange(inc.id, status))}
+                      >
+                        {busy.status ? '…' : 'Update'}
+                      </button>
+                    </div>
+                    {resolveBlocked && (
+                      <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <XCircle size={11} /> Must be validated, approved, and assigned to a team before resolving.
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Admin password modal */}
+                {pwOpen && (
+                  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}
+                    onClick={() => setPwOpen(false)}>
+                    <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 360, padding: '24px 26px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+                      onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, color: '#1a2e1c', marginBottom: 12 }}>
+                        <Lock size={17} /> Admin Override
+                      </div>
+                      <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.55, marginBottom: 16 }}>
+                        Enter your admin password to unlock status editing on this resolved incident.
+                      </p>
+                      <div className={p.field}>
+                        <label>Admin Password</label>
+                        <input type="password" value={pwInput} onChange={e => setPwInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && submitAdminOverride()}
+                          placeholder="Enter your password" autoFocus />
+                      </div>
+                      {pwError && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '7px 10px', marginTop: 8 }}>
+                          <XCircle size={13} /> {pwError}
+                        </div>
+                      )}
+                      <div className={p.btnRow} style={{ marginTop: 14 }}>
+                        <button className={`${p.btn} ${p.btnPrimary}`} onClick={submitAdminOverride} disabled={pwLoading}>
+                          {pwLoading ? 'Verifying…' : 'Confirm'}
+                        </button>
+                        <button className={`${p.btn} ${p.btnOutline}`} onClick={() => setPwOpen(false)}>Cancel</button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

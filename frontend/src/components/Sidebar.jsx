@@ -1,8 +1,8 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import {
   LayoutDashboard, Users, AlertTriangle, Shield, Bell,
-  BarChart2, Settings, LogOut, ShieldCheck, X, HelpCircle
+  BarChart2, Settings, ShieldCheck, X, HelpCircle
 } from 'lucide-react'
 import s from './Sidebar.module.css'
 
@@ -46,25 +46,19 @@ function getNavItems(roleName) {
 }
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { currentUser, logout, systemConfig } = useApp()
-  const navigate = useNavigate()
+  const { currentUser, systemConfig } = useApp()
   const logoImage = systemConfig?.logoImage
 
-  // Derive display names from siteName ("UV Toledo Campus — SCARS" → "SCARS" / "UV Toledo Campus")
   const rawName  = systemConfig?.siteName || 'UV Toledo Campus — SCARS'
   const nameParts = rawName.split(' — ')
   const logoName   = nameParts.length > 1 ? nameParts[nameParts.length - 1] : rawName
   const logoCampus = nameParts.length > 1 ? nameParts.slice(0, -1).join(' — ') : 'Campus'
-
-  const handleLogout = () => { logout(); navigate('/') }
 
   const roleName = typeof currentUser?.role === 'object'
     ? currentUser.role?.name
     : currentUser?.role
 
   const navItems = getNavItems(roleName)
-
-  const photo = currentUser?.profileImage
 
   return (
     <aside className={`${s.sidebar} ${isOpen ? s.open : ''}`}>
@@ -96,21 +90,6 @@ export default function Sidebar({ isOpen, onClose }) {
           </NavLink>
         ))}
       </nav>
-
-      <div className={s.userSection}>
-        {photo ? (
-          <img src={photo} alt="avatar" className={s.avatarPhoto} />
-        ) : (
-          <div className={s.avatar}>{currentUser?.avatar}</div>
-        )}
-        <div className={s.userInfo}>
-          <span className={s.userName}>{currentUser?.name}</span>
-          <span className={s.userRole}>{roleName}</span>
-        </div>
-        <button className={s.logoutBtn} onClick={handleLogout} title="Logout">
-          <LogOut size={16} />
-        </button>
-      </div>
     </aside>
   )
 }

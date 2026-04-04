@@ -52,11 +52,19 @@ export default function Header({ title, subtitle }) {
   const TARGET_MAP = { Admin: 'Admin', Officer: 'Officers', Responder: 'Responders', Student: 'Students' }
   const myTarget   = TARGET_MAP[roleName] ?? ''
 
-  const dbNotifs = [...notifications]
-    .filter(n => n.target === 'All' || n.target === myTarget)
+  const isStudent = roleName === 'Student'
 
-  // Merge DB notifications with in-app incident alerts (incidents always target non-students)
-  const sorted = [...dbNotifs, ...(incidentAlerts || [])]
+  // DB notifications filtered by role target (exclude Admin-targeted ones for non-admins)
+  const dbNotifs = [...notifications].filter(n => {
+    if (n.target === 'All') return true
+    if (n.target === 'Admin') return roleName === 'Admin'
+    return n.target === myTarget
+  })
+
+  // In-app incident/response alerts — Students never see these
+  const roleAlerts = isStudent ? [] : (incidentAlerts || [])
+
+  const sorted = [...dbNotifs, ...roleAlerts]
     .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
 
   const unread  = sorted.filter(n => !readIds.has(n.id)).length
