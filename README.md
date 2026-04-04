@@ -266,7 +266,7 @@ npm run db:reset     # drop all data and re-apply schema + seed
 | `npm run dev` | Express + nodemon on :3001 |
 | `npm start` | Production start (`UV_THREADPOOL_SIZE=2 node --max-old-space-size=256`) |
 | `npm run build:frontend` | Install frontend deps + build into `backend/public/` |
-| `npm run deploy` | prisma generate → db:push → db:seed → build frontend |
+| `npm run deploy` | Build frontend into `backend/public/` |
 | `npm run db:push` | Sync schema to MySQL |
 | `npm run db:seed` | Seed data |
 | `npm run db:studio` | Prisma Studio |
@@ -532,7 +532,7 @@ hPanel → Node.js panel → **Run NPM command**: `run db:push`
 
 ### Updating
 
-Push to the tracked branch — Hostinger auto-deploys. If `prisma/schema.prisma` changed, run `db:push` after deploy.
+Push to the tracked branch — Hostinger auto-deploys. If `prisma/schema.prisma` changed, run `db:push` manually via SSH after deploy (Prisma is a dev-only CLI tool and does not run during `npm install`).
 
 ---
 
