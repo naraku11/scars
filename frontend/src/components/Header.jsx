@@ -40,6 +40,10 @@ export default function Header({ title, subtitle }) {
     try { return new Set(JSON.parse(localStorage.getItem('scars_read_notifs') || '[]')) }
     catch { return new Set() }
   })
+  const [dismissedIds, setDismissedIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('scars_dismissed_notifs') || '[]')) }
+    catch { return new Set() }
+  })
 
   const wrapRef    = useRef()
   const accountRef = useRef()
@@ -67,13 +71,25 @@ export default function Header({ title, subtitle }) {
   const sorted = [...dbNotifs, ...roleAlerts]
     .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
 
-  const unread  = sorted.filter(n => !readIds.has(n.id)).length
+  // Visible = sorted minus user-dismissed items
+  const visible = sorted.filter(n => !dismissedIds.has(n.id))
 
-  // Mark all as read when panel opens
+  const unread  = visible.filter(n => !readIds.has(n.id)).length
+
+  const handleDismiss = (id, e) => {
+    e.stopPropagation()
+    setDismissedIds(prev => {
+      const next = new Set([...prev, id])
+      localStorage.setItem('scars_dismissed_notifs', JSON.stringify([...next]))
+      return next
+    })
+  }
+
+  // Mark all visible as read when panel opens
   const handleOpen = () => {
     setOpen(v => {
       if (!v) {
-        const allIds = sorted.map(n => n.id)
+        const allIds = visible.map(n => n.id)
         const next   = new Set([...readIds, ...allIds])
         setReadIds(next)
         localStorage.setItem('scars_read_notifs', JSON.stringify([...next]))
@@ -142,8 +158,8 @@ export default function Header({ title, subtitle }) {
               <div className={s.dropHeader}>
                 <span className={s.dropTitle}>Notifications</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {sorted.length > 0 && (
-                    <span className={s.dropCount}>{sorted.length} total</span>
+                  {visible.length > 0 && (
+                    <span className={s.dropCount}>{visible.length} total</span>
                   )}
                   <button className={s.dropClose} onClick={() => setOpen(false)}>
                     <X size={14} />
@@ -153,13 +169,13 @@ export default function Header({ title, subtitle }) {
 
               {/* List */}
               <div className={s.dropList}>
-                {sorted.length === 0 ? (
+                {visible.length === 0 ? (
                   <div className={s.empty}>
                     <Bell size={24} />
-                    <span>No notifications yet</span>
+                    <span>No notifications</span>
                   </div>
                 ) : (
-                  sorted.slice(0, 20).map(n => {
+                  visible.slice(0, 20).map(n => {
                     const Icon     = TYPE_ICON[n.type] ?? Info
                     const color    = TYPE_COLOR[n.type] ?? '#4a7a52'
                     const isNew    = !readIds.has(n.id)
@@ -195,6 +211,15 @@ export default function Header({ title, subtitle }) {
                             }
                           </div>
                         </div>
+                        <button
+                          className={s.notifDismiss}
+                          onClick={e => handleDismiss(n.id, e)}
+                          title="Dismiss"
+                          tabIndex={-1}
+                          aria-label="Dismiss notification"
+                        >
+                          <X size={12} />
+                        </button>
                       </div>
                     )
                   })
@@ -202,7 +227,7 @@ export default function Header({ title, subtitle }) {
               </div>
 
               {/* Footer */}
-              {sorted.length > 0 && (
+              {visible.length > 0 && (
                 <div className={s.dropFooter}>
                   <CheckCircle size={12} /> All caught up
                 </div>

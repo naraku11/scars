@@ -168,6 +168,27 @@
   outline-offset: -2px;
 }
 
+/* Dismiss button — visible on item hover */
+.notifDismiss {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 1px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  min-height: unset;
+}
+.notifItem:hover .notifDismiss { opacity: 1; }
+.notifDismiss:hover { color: #dc2626; background: #fee2e2; }
+
 .notifIncidentTag {
   display: inline-flex;
   align-items: center;
