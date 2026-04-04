@@ -134,6 +134,9 @@ httpServer.listen(PORT, async () => {
   try {
     await pool.execute('SELECT 1')
     console.log('   DB       : ✅ connected')
+    // Auto-apply schema migrations (idempotent)
+    await pool.execute('ALTER TABLE Incident ADD COLUMN IF NOT EXISTS deletedAt DATETIME DEFAULT NULL')
+    console.log('   Schema   : ✅ migrations applied')
   } catch (e) {
     console.error('   DB       : ❌ connection failed —', e.message)
   }

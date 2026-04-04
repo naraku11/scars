@@ -7,7 +7,7 @@ import s from './RoleDashboard.module.css'
 
 const INCIDENT_TYPES = ['Fire', 'Medical', 'Security', 'Theft', 'Accident', 'Natural Disaster', 'Vandalism', 'Other']
 const PRIORITIES     = ['Low', 'Medium', 'High', 'Critical']
-const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Closed: '#94a3b8' }
+const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Rejected: '#dc2626' }
 const PRIORITY_COLOR = { Critical: '#dc2626', High: '#f59e0b', Medium: '#3b82f6', Low: '#22c55e' }
 
 const initForm = { title: '', type: 'Other', priority: 'Medium', location: '', description: '' }

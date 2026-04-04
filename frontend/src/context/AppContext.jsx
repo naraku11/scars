@@ -53,9 +53,10 @@ export function AppProvider({ children }) {
   const [users, setUsers]                 = useState([])
   const [roles, setRoles]                 = useState([])
   const [teams, setTeams]                 = useState([])
-  const [incidents, setIncidents]         = useState([])
-  const [notifications, setNotifications] = useState([])
-  const [incidentAlerts, setIncidentAlerts] = useState([])   // in-app incident notifications
+  const [incidents, setIncidents]               = useState([])
+  const [deletedIncidents, setDeletedIncidents] = useState([])
+  const [notifications, setNotifications]       = useState([])
+  const [incidentAlerts, setIncidentAlerts]     = useState([])   // in-app incident notifications
   const [backupConfig, setBackupConfig]   = useState({})
   const [systemConfig, setSystemConfig]   = useState({})
   const [loading, setLoading]             = useState(false)
@@ -147,9 +148,14 @@ export function AppProvider({ children }) {
         return prev.map(i => i.id === inc.id ? inc : i)
       })
     })
-    socket.on('incident:deleted', ({ id }) =>
+    socket.on('incident:deleted', ({ id, incident }) => {
       setIncidents(prev => prev.filter(i => i.id !== id))
-    )
+      if (incident) setDeletedIncidents(prev => prev.some(i => i.id === id) ? prev : [incident, ...prev])
+    })
+    socket.on('incident:restored', (incident) => {
+      setDeletedIncidents(prev => prev.filter(i => i.id !== incident.id))
+      setIncidents(prev => prev.some(i => i.id === incident.id) ? prev : [incident, ...prev])
+    })
 
     // Users
     socket.on('user:created', (user) =>
@@ -200,11 +206,12 @@ export function AppProvider({ children }) {
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [u, r, t, inc, notif, sys, bak] = await Promise.all([
+      const [u, r, t, inc, deleted, notif, sys, bak] = await Promise.all([
         usersApi.list(),
         rolesApi.list(),
         teamsApi.list(),
         incidentsApi.list(),
+        incidentsApi.listDeleted(),
         notificationsApi.list(),
         adminApi.getSystemConfig(),
         adminApi.getBackupConfig(),
@@ -213,6 +220,7 @@ export function AppProvider({ children }) {
       setRoles(r)
       setTeams(t)
       setIncidents(inc)
+      setDeletedIncidents(deleted)
       setNotifications(notif)
       setSystemConfig(sys)
       setBackupConfig(bak)
@@ -245,7 +253,7 @@ export function AppProvider({ children }) {
     localStorage.removeItem('scars_token')
     setCurrentUser(null)
     setUsers([]); setRoles([]); setTeams([])
-    setIncidents([]); setNotifications([])
+    setIncidents([]); setDeletedIncidents([]); setNotifications([])
     setSystemConfig({}); setBackupConfig({})
     setInitialized(true)
   }
@@ -262,8 +270,14 @@ export function AppProvider({ children }) {
     setIncidents(prev => prev.map(i => i.id === id ? inc : i))
   }
   const deleteIncident = async (id) => {
-    await incidentsApi.delete(id)
+    const incident = await incidentsApi.delete(id)
     setIncidents(prev => prev.filter(i => i.id !== id))
+    if (incident?.id) setDeletedIncidents(prev => prev.some(i => i.id === id) ? prev : [incident, ...prev])
+  }
+  const restoreIncident = async (id) => {
+    const incident = await incidentsApi.restore(id)
+    setDeletedIncidents(prev => prev.filter(i => i.id !== id))
+    setIncidents(prev => prev.some(i => i.id === incident.id) ? prev : [incident, ...prev])
   }
   const validateIncident = async (id) => {
     const inc = await incidentsApi.validate(id)
@@ -366,9 +380,9 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       currentUser, login, logout,
-      users, roles, teams, incidents, notifications, incidentAlerts, backupConfig, systemConfig,
+      users, roles, teams, incidents, deletedIncidents, notifications, incidentAlerts, backupConfig, systemConfig,
       loading, initialized,
-      addIncident, updateIncident, deleteIncident, validateIncident, verifyIncident,
+      addIncident, updateIncident, deleteIncident, restoreIncident, validateIncident, verifyIncident,
       assignIncident, updateStatus,
       updateProfile,
       addUser, updateUser, deleteUser,

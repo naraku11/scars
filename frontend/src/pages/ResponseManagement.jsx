@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Zap, Users, CheckCircle, XCircle, Plus, Pencil, Trash2, Shield, UserCheck, ChevronDown, ChevronUp, Lock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Zap, Users, CheckCircle, XCircle, Plus, Pencil, Trash2, Shield, UserCheck, ChevronDown, ChevronUp, Lock, RefreshCw } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { authApi } from '../services/api'
 import Header from '../components/Header'
@@ -49,6 +49,16 @@ export default function ResponseManagement() {
   const [pwError, setPwError]         = useState('')
   const [pwLoading, setPwLoading]     = useState(false)
 
+  // Reassign state
+  const [reassignId, setReassignId]   = useState(null)  // incidentId being reassigned
+
+  // Auto-dismiss success
+  useEffect(() => {
+    if (!success) return
+    const t = setTimeout(() => setSuccess(''), 3500)
+    return () => clearTimeout(t)
+  }, [success])
+
   // ── Personnel ─────────────────────────────────────────────────────────────
   const personnel = users.filter(isPersonnel)
 
@@ -84,13 +94,22 @@ export default function ResponseManagement() {
     })
   }
 
+  // ── Dynamic team status based on active assigned incidents ─────────────
+  const getTeamDynamicStatus = (team) => {
+    const hasActive = incidents.some(i => {
+      const aid = typeof i.assignedTo === 'object' ? i.assignedTo?.id : i.assignedTo
+      return aid === team.id && i.status !== 'Resolved' && i.status !== 'Rejected' && i.status !== 'Closed'
+    })
+    return hasActive ? 'On Duty' : team.status
+  }
+
   // ── Assignment ───────────────────────────────────────────────────────────
-  const unassigned = incidents.filter(i => !i.assignedTo && i.status !== 'Resolved' && i.status !== 'Rejected')
-  const assigned   = incidents.filter(i =>  i.assignedTo && i.status !== 'Resolved' && i.status !== 'Rejected')
+  const unassigned = incidents.filter(i => !i.assignedTo && i.status !== 'Resolved' && i.status !== 'Rejected' && i.status !== 'Closed')
+  const assigned   = incidents.filter(i =>  i.assignedTo && i.status !== 'Resolved' && i.status !== 'Rejected' && i.status !== 'Closed')
 
   const autoAssign = async () => {
     setError('')
-    const availTeams = teams.filter(t => t.status === 'Available')
+    const availTeams = teams.filter(t => getTeamDynamicStatus(t) === 'Available')
     if (!availTeams.length) { setError('No available teams to assign.'); return }
     try {
       for (let i = 0; i < unassigned.length; i++) {
@@ -182,15 +201,6 @@ export default function ResponseManagement() {
     setPwModal({ incId, newStatus })
   }
 
-  // ── Dynamic team status based on active assigned incidents ─────────────
-  const getTeamDynamicStatus = (team) => {
-    const hasActive = incidents.some(i => {
-      const aid = typeof i.assignedTo === 'object' ? i.assignedTo?.id : i.assignedTo
-      return aid === team.id && i.status !== 'Resolved' && i.status !== 'Rejected' && i.status !== 'Closed'
-    })
-    return hasActive ? 'On Duty' : team.status
-  }
-
   const submitPasswordVerify = async () => {
     if (!pwInput.trim()) { setPwError('Please enter your password.'); return }
     setPwLoading(true); setPwError('')
@@ -212,6 +222,7 @@ export default function ResponseManagement() {
     setError('')
     setSuccess('')
     setShowForm(false)
+    setReassignId(null)
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -285,8 +296,10 @@ export default function ResponseManagement() {
                           }
                         </td>
                         <td>
-                          {team
-                            ? <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
+                          {team ? (() => {
+                            const dyn = getTeamDynamicStatus(team)
+                            return <span className={`${s.teamStatus} ${dyn === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{dyn}</span>
+                          })()
                             : <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>
                           }
                         </td>
@@ -500,18 +513,23 @@ export default function ResponseManagement() {
                   </button>
                 </div>
 
-                <div className={s.teamsRow}>
-                  {teams.map(t => (
-                    <div key={t.id} className={s.teamCard}>
-                      <div className={s.teamName}>{t.name}</div>
-                      <div className={s.teamSpec}>{t.specialty}</div>
-                      <span className={`${s.teamStatus} ${t.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{t.status}</span>
-                      <div style={{ fontSize: 11, color: '#4a7a52', marginTop: 4 }}>
-                        {getMemberNames(t).join(', ') || 'No members'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {teams.length > 0 && (
+                  <div className={s.teamsRow}>
+                    {teams.map(t => {
+                      const dyn = getTeamDynamicStatus(t)
+                      return (
+                        <div key={t.id} className={s.teamCard}>
+                          <div className={s.teamName}>{t.name}</div>
+                          {t.specialty && <div className={s.teamSpec} style={{ fontSize: 11, marginBottom: 4 }}>{t.specialty}</div>}
+                          <span className={`${s.teamStatus} ${dyn === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{dyn}</span>
+                          <div style={{ fontSize: 11, color: '#4a7a52', marginTop: 4 }}>
+                            {getMemberNames(t).join(', ') || <span style={{ color: '#94a3b8' }}>No members</span>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {unassigned.length === 0 && <div className={p.empty}>All incidents are assigned.</div>}
                 <div className={s.assignedGrid}>
@@ -522,14 +540,33 @@ export default function ResponseManagement() {
                         <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
                       </div>
                       <div className={s.assignMeta}>
-                        <span>{inc.type}</span><span>{inc.location}</span>
+                        <span><strong>Type:</strong> {inc.type}</span>
+                        <span><strong>Location:</strong> {inc.location}</span>
                       </div>
-                      <div className={p.btnRow} style={{ marginTop: 8 }}>
-                        {teams.map(t => (
-                          <button key={t.id} className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => handleAssign(inc.id, t.id)}>
-                            Assign to {t.name}
-                          </button>
-                        ))}
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                          background: inc.validated ? '#dcfce7' : '#fef3c7', color: inc.validated ? '#166534' : '#92400e' }}>
+                          {inc.validated ? '✓ Validated' : '⏳ Pending Validation'}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                          background: inc.verified ? '#dcfce7' : '#fef3c7', color: inc.verified ? '#166534' : '#92400e' }}>
+                          {inc.verified ? '✓ Verified' : '⏳ Pending Verification'}
+                        </span>
+                      </div>
+                      <div className={p.btnRow} style={{ marginTop: 4, flexWrap: 'wrap', gap: 5 }}>
+                        {teams.length === 0 && <span style={{ fontSize: 11, color: '#94a3b8' }}>No teams available. Create teams first.</span>}
+                        {teams.map(t => {
+                          const dyn = getTeamDynamicStatus(t)
+                          return (
+                            <button key={t.id}
+                              className={`${p.btn} ${dyn === 'Available' ? p.btnPrimary : p.btnOutline} ${p.btnSm}`}
+                              onClick={() => handleAssign(inc.id, t.id)}
+                              title={`${dyn} · ${getMemberNames(t).join(', ') || 'No members'}`}
+                            >
+                              {t.name} <span style={{ fontSize: 9, opacity: 0.75 }}>({dyn})</span>
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
                   ))}
@@ -548,7 +585,8 @@ export default function ResponseManagement() {
                     const team = getTeamFromInc(inc)
                     const members = getMemberNames(team)
                     const dynTeamStatus = team ? getTeamDynamicStatus(team) : null
-                    const statusBadge = { 'Open': 'badge-open', 'In Progress': 'badge-progress', 'Resolved': 'badge-resolved', 'Rejected': 'badge-rejected', 'Closed': 'badge-resolved' }
+                    const statusBadge = { 'Open': 'badge-open', 'In Progress': 'badge-progress', 'Resolved': 'badge-resolved', 'Rejected': 'badge-rejected' }
+                    const isReassigning = reassignId === inc.id
                     return (
                       <div key={inc.id} className={s.assignCard}>
                         <div className={s.assignCardHeader}>
@@ -574,6 +612,47 @@ export default function ResponseManagement() {
                             {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
                           </div>
                         )}
+                        {/* Reassign */}
+                        {!isReassigning ? (
+                          <button
+                            className={`${p.btn} ${p.btnOutline} ${p.btnSm}`}
+                            style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}
+                            onClick={() => setReassignId(inc.id)}
+                          >
+                            <RefreshCw size={11} /> Reassign Team
+                          </button>
+                        ) : (
+                          <div style={{ marginTop: 8 }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#4a7a52', marginBottom: 5 }}>Reassign to:</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                              {teams.filter(t => {
+                                const tid = typeof inc.assignedTo === 'object' ? inc.assignedTo?.id : inc.assignedTo
+                                return t.id !== tid
+                              }).map(t => {
+                                const dyn = getTeamDynamicStatus(t)
+                                return (
+                                  <button key={t.id}
+                                    className={`${p.btn} ${dyn === 'Available' ? p.btnPrimary : p.btnOutline} ${p.btnSm}`}
+                                    onClick={async () => {
+                                      await handleAssign(inc.id, t.id)
+                                      setReassignId(null)
+                                    }}
+                                  >
+                                    {t.name} <span style={{ fontSize: 9, opacity: 0.75 }}>({dyn})</span>
+                                  </button>
+                                )
+                              })}
+                              {teams.length <= 1 && <span style={{ fontSize: 11, color: '#94a3b8' }}>No other teams available.</span>}
+                            </div>
+                            <button
+                              className={`${p.btn} ${p.btnOutline} ${p.btnSm}`}
+                              style={{ marginTop: 6 }}
+                              onClick={() => setReassignId(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -588,7 +667,7 @@ export default function ResponseManagement() {
           <>
             <div className={p.subTabs}>
               <button className={`${p.subTab} ${subTab === 'active' ? p.activeSubTab : ''}`} onClick={() => setSubTab('active')}>
-                Active ({incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length})
+                Active ({incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved' && i.status !== 'Closed').length})
               </button>
               <button className={`${p.subTab} ${subTab === 'resolved' ? p.activeSubTab : ''}`} onClick={() => setSubTab('resolved')}>
                 Resolved ({incidents.filter(i => i.status === 'Resolved').length})
@@ -600,18 +679,18 @@ export default function ResponseManagement() {
               <div className={p.card}>
                 <div className={p.sectionHeader}>
                   <span className={p.sectionTitle}>
-                    Active Incidents ({incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length})
+                    Active Incidents ({incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved' && i.status !== 'Closed').length})
                   </span>
                   <div className={s.legend}>
                     <span className={s.legendDot} style={{ background: '#ef4444' }} /> Open
                     <span className={s.legendDot} style={{ background: '#f59e0b', marginLeft: 10 }} /> In Progress
                   </div>
                 </div>
-                {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').length === 0
+                {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved' && i.status !== 'Closed').length === 0
                   ? <div className={p.empty}>No active incidents.</div>
                   : (
                     <div className={s.assignedGrid}>
-                      {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved').map(inc => {
+                      {incidents.filter(i => i.status !== 'Rejected' && i.status !== 'Resolved' && i.status !== 'Closed').map(inc => {
                         const team = getTeamFromInc(inc)
                         const members = getMemberNames(team)
                         const canResolve = inc.validated && inc.verified && inc.assignedTo

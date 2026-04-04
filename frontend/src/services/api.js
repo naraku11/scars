@@ -81,14 +81,16 @@ export const teamsApi = {
 
 // Incidents
 export const incidentsApi = {
-  list:     ()              => get('/incidents'),
-  get:      (id)            => get(`/incidents/${id}`),
-  create:   (data)          => post('/incidents', data),
-  update:   (id, data)      => put(`/incidents/${id}`, data),
-  delete:   (id)            => del(`/incidents/${id}`),
-  validate: (id)            => patch(`/incidents/${id}/validate`),
-  verify:   (id)            => patch(`/incidents/${id}/verify`),
-  assign:   (id, teamId)    => patch(`/incidents/${id}/assign`, { teamId }),
+  list:        ()           => get('/incidents'),
+  listDeleted: ()           => get('/incidents/deleted'),
+  get:         (id)         => get(`/incidents/${id}`),
+  create:      (data)       => post('/incidents', data),
+  update:      (id, data)   => put(`/incidents/${id}`, data),
+  delete:      (id)         => del(`/incidents/${id}`),
+  restore:     (id)         => patch(`/incidents/${id}/restore`),
+  validate:    (id)         => patch(`/incidents/${id}/validate`),
+  verify:      (id)         => patch(`/incidents/${id}/verify`),
+  assign:      (id, teamId) => patch(`/incidents/${id}/assign`, { teamId }),
 }
 
 // Notifications

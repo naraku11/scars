@@ -10,7 +10,7 @@ import p from '../components/Page.module.css'
 import s from './RoleDashboard.module.css'
 
 const PRIORITY_COLOR = { Critical: '#dc2626', High: '#f59e0b', Medium: '#3b82f6', Low: '#22c55e' }
-const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Closed: '#94a3b8' }
+const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Rejected: '#dc2626' }
 
 export default function OfficerDashboard() {
   const { incidents, teams, notifications, validateIncident, verifyIncident, assignIncident, sendNotification, currentUser } = useApp()

@@ -15,7 +15,7 @@ import s from './ReportingAnalytics.module.css'
 
 const COLORS       = ['#2E7D32', '#43A047', '#66BB6A', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 const PRIORITY_CLR = { Critical: '#ef4444', High: '#f97316', Medium: '#f59e0b', Low: '#22c55e' }
-const STATUS_CLR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Closed: '#94a3b8', Rejected: '#dc2626' }
+const STATUS_CLR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Rejected: '#dc2626' }
 
 const roleName = (u) => typeof u?.role === 'object' ? u?.role?.name ?? '' : (u?.role ?? '')
 
@@ -495,7 +495,7 @@ export default function ReportingAnalytics() {
                     />
                   </div>
                   <select value={tableStatus} onChange={e => setTableStatus(e.target.value)} className={s.filterSel}>
-                    {['All','Open','In Progress','Resolved','Rejected','Closed'].map(s => <option key={s}>{s}</option>)}
+                    {['All','Open','In Progress','Resolved','Rejected'].map(s => <option key={s}>{s}</option>)}
                   </select>
                   <select value={tableType} onChange={e => setTableType(e.target.value)} className={s.filterSel}>
                     {allTypes.map(t => <option key={t}>{t}</option>)}
@@ -726,7 +726,7 @@ export default function ReportingAnalytics() {
               <div className={p.field}>
                 <label>Status</label>
                 <select value={exportFilter.status} onChange={e => setExportFilter(f => ({ ...f, status: e.target.value }))}>
-                  {['All','Open','In Progress','Resolved','Rejected','Closed'].map(s => <option key={s}>{s}</option>)}
+                  {['All','Open','In Progress','Resolved','Rejected'].map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
               <div className={p.field}>

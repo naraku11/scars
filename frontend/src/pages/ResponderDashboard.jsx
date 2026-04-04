@@ -7,7 +7,7 @@ import Header from '../components/Header'
 import p from '../components/Page.module.css'
 import s from './RoleDashboard.module.css'
 
-const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Closed: '#94a3b8' }
+const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Rejected: '#dc2626' }
 const PRIORITY_COLOR = { Critical: '#dc2626', High: '#f59e0b', Medium: '#3b82f6', Low: '#22c55e' }
 
 export default function ResponderDashboard() {

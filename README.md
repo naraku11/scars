@@ -33,53 +33,85 @@ Campus safety and incident management platform — real-time reporting, response
 | Real-time | Socket.io 4 (polling-first for shared hosting compatibility) |
 | Auth | JWT + bcryptjs 3 |
 | Build | Vite 8 → output to `backend/public/` |
-| Notifications | Nodemailer (email) + Twilio (SMS, lazy-loaded) |
 
 ---
 
 ## Features
 
 ### Incident Management
-- Full lifecycle: **Report → Validate → Verify → Assign Team → Resolve**
-- Incidents cannot be resolved unless **Validated**, **Verified**, and assigned to a response team (full words shown in progress indicators)
-- Active and Resolved sub-tabs with separate views
-- All reports show **submitter name** and **full timestamp** across every dashboard
+
+- Full lifecycle: **Report → Validate → Verify → Assign Team → In Progress → Resolve**
+- Incidents **cannot be deleted once both validated and verified** — delete button is locked with a visual indicator
+- Incidents **cannot be resolved** unless validated, verified, and assigned to a response team
+- **Soft delete** — deleted incidents move to a "Deleted" tab; admins can **Restore** them at any time
+- **Auto-assign response team** — matches team specialty to incident type (available teams prioritized); falls back to any available team, then any team; sets status to **In Progress** automatically
+- Team dropdown shows **dynamic status** (On Duty / Available) and specialty per team
+- Active, Resolved, and Deleted sub-tabs with separate views
+- Status flow: `Open → In Progress → Resolved` · `Rejected` for invalid reports
+- Admin password override to reopen Resolved incidents (non-Admin roles see a locked state)
 
 ### Response Management
-- **Personnel tab** — browse all Officers and Responders with team assignments
-- **Teams tab** — roster view; create/edit teams with member picker; team status **dynamically reflects active incident assignments** (auto shows "On Duty" when team has active incidents)
-- **Assignments tab** — unassigned and assigned incident cards with corrected status badges and team chips showing live dynamic status
-- **Status Tracking tab** — active incidents with live status select; resolved incidents locked behind password confirmation; **Admin role bypasses the password check** entirely
+
+- **Personnel tab** — all Officers and Responders with team assignments and dynamic team status
+- **Teams tab** — roster view (expandable member list); create/edit/delete teams with member picker; team status **dynamically shows "On Duty"** when the team has active assigned incidents
+- **Assignments tab** — unassigned incidents show validation/verification badges and color-coded assign buttons (green = available); assigned incidents show team info and a **Reassign Team** button
+- **Status Tracking tab** — active incidents with live status select; resolved incidents locked behind password confirmation; **Admin bypasses password check**
+- Auto-assign uses dynamic team status for available-team detection
+
+### Notification System
+
+- **Web Push only** — send in-app push notifications to targeted roles
+- Target audience: All, Responders, Officers, Students (Admin excluded from targets)
+- Notification history with sent timestamp and target group
+- Bell panel (header) — role-filtered, unread badge with ring animation, all items clickable
+  - Incident alerts (non-Students): new incident → in-app bell alert with "View Incident" link
+  - Response alerts: Responders notified when their team is assigned; Admin/Officer notified on status changes
+  - DB notifications filtered by role target
+- **Sound alerts** (Web Audio API) — plays on new incidents for Officers/Admins/Responders:
+  - Critical = urgent triple beep (880 → 1100 Hz, square wave)
+  - High = double beep (660 Hz, sawtooth)
+  - Medium/Low = single tone (sine)
 
 ### Dashboards (Role-Specific)
-- **Admin** — system overview, incident stats, status breakdown, quick actions; status tracking resolved-incident reopen requires no password for Admin role
-- **Officer** — active incidents with reporter name, timestamp, team assignment column, and full Validate/Verify action labels; sound alert on new incident
-- **Responder** — team-assigned incidents shown **read-only** (no status editing, no delete); **All Recent Reports** section shows the latest 10 campus-wide reports; sound alert on new incident
-- **Student** — report an incident; track submitted reports with full timestamps; Campus Alerts show title and message only (no type badge)
+
+- **Admin** — system overview, incident stats, status breakdown, quick actions
+- **Officer** — active incidents with reporter name, timestamp, team assignment; Validate/Approve/Reject actions; sound alert on new incident
+- **Responder** — team-assigned incidents (read-only, no status editing); All Recent Reports section; sound alert on team assignment
+- **Student** — report incident; track submitted reports with timestamps; Campus Alerts show title and message only
 
 ### Reporting & Analytics
-- Filters to **Critical and High priority incidents only**
-- **Overview** — KPI cards, pipeline progress rates, monthly area chart, priority bar chart, recent incidents
+
+- **Overview** — KPI cards, pipeline progress, monthly area chart, priority bar chart, recent incidents
 - **Incident Reports** — charts (by type, status donut, monthly trend, day-of-week, top locations, validation funnel) + filterable data table with CSV export
-- **Response Metrics** — team performance bar chart, resolution rate progress bars, team summary table, personnel directory
-- **Export** — filter by date range, type, status, priority; download as CSV
+- **Response Metrics** — team performance, resolution rate progress bars, team summary, personnel directory
+- **Export** — filter by date range, type, status, priority; download CSV
+- Filters: Critical and High priority incidents highlighted
+
+### Role & Permission Management
+
+- Permissions stored per role: `incidents`, `response`, `notifications`, `reports`, `admin`
+- **Sidebar navigation is fully dynamic** — built from live role permissions; changes take effect immediately for online users (no re-login required)
+- **Route guards** — navigating to a route without the required permission redirects to the role's home dashboard
+- Live preview in System Administration — toggling a permission checkbox instantly shows which pages that role can access (before saving)
+- Admin role is protected and cannot be edited
 
 ### FAQ & Help
-- Searchable accordion FAQ organized by role (Students, Officers, Responders, General, Notifications, Reports)
-- Role-specific quick-help tips shown based on the logged-in user's role
+
+- Role-specific FAQ — each section filtered to the logged-in user's role
+- Searchable accordion organized by topic
+- Role-specific quick-help tips
 - Emergency contacts and support resources
-- Accessible from sidebar for all roles at `/faq`
+- Accessible at `/faq` for all roles
 
 ### System
-- Real-time updates via Socket.io — every mutation is broadcast to all clients; duplicate-safe (socket-only state update, no race condition)
-- Role-based notifications — bell panel filtered per role with unread badge and ring animation; **panel is 420 px wide on desktop**, all items are **clickable** (routes to Notification System or Incidents page)
-- **Incident alerts in bell panel** — when a new incident is created, Officers and Admins see an in-app alert in the bell dropdown with a "View Incident" link
-- **Sound alerts** — new incidents trigger a Web Audio API tone based on priority (Critical = urgent triple beep, High = double beep, others = single tone); plays for Officers and Admins
-- Profile management — edit name, email, password, and photo; optional Face++ face verification
+
+- Real-time via Socket.io — every mutation broadcast to all clients; duplicate-safe
+- Profile management — edit name, email, password, and profile photo; optional Face++ face verification
 - Dynamic branding — admin uploads logo; updates favicon, tab title, sidebar, login screen, and loading screen
 - TTL in-memory cache (max 100 entries) with auto-eviction and pattern-based purge
 - gzip compression on all API responses (~70% payload reduction)
 - Request deduplication — concurrent identical GET requests share a single network call
+- Schema migrations applied automatically at server startup (idempotent `ALTER TABLE IF NOT EXISTS`)
 - Mobile-responsive with touch-friendly tap targets
 
 ---
@@ -88,12 +120,12 @@ Campus safety and incident management platform — real-time reporting, response
 
 | Role | Level | Dashboard | Incidents | Response | Notifications | Reports | Admin |
 |---|---|---|---|---|---|---|---|
-| Admin | 1 | `/dashboard` | Full | Full + bypass password | Full | Full (Critical+High) | Full |
-| Officer | 2 | `/officer` | Validate/Verify/Assign + sound alerts | View/Assign | Sound alerts | View (Critical+High) | — |
-| Responder | 3 | `/responder` | View only (no edit/delete) + All Reports | View + sound alerts | Receive | — | — |
-| Student | 4 | `/student` | Report only | — | No type badge in alerts | — | — |
+| Admin | 1 | `/dashboard` | Full + delete lock | Full + bypass password | Full | Full | Full |
+| Officer | 2 | `/officer` | Validate/Approve/Assign + sound | View/Assign | Sound alerts | View | — |
+| Responder | 3 | `/responder` | View only (read-only) | View + sound alerts | Receive | — | — |
+| Student | 4 | `/student` | Report only | — | — | — | — |
 
-Login automatically redirects each role to their dashboard.
+Login automatically redirects each role to their dashboard. Sidebar items and route access are dynamically controlled by the role's permission settings.
 
 ---
 
@@ -106,7 +138,6 @@ scars/
 │   │   ├── components/            Header, Sidebar, Layout, LoadingScreen, BrandingManager
 │   │   ├── context/AppContext.jsx  Global state, auth, Socket.io listeners
 │   │   ├── pages/                 All page components (one per route)
-│   │   │   └── FaqHelp.jsx        FAQ & Help page (all roles)
 │   │   └── services/api.js        Fetch API client with request deduplication
 │   ├── static/.htaccess           SPA routing + API proxy
 │   ├── index.html
@@ -115,10 +146,9 @@ scars/
 │
 ├── backend/                       Express + mysql2 REST API
 │   ├── server/
-│   │   ├── index.js               Entry point; serves backend/public/ in production
+│   │   ├── index.js               Entry point; auto-applies schema migrations at startup
 │   │   ├── lib/db.js              mysql2 pool (connectionLimit: 4) + row mappers
 │   │   ├── lib/cache.js           TTL in-memory cache (max 100 entries)
-│   │   ├── lib/notify.js          Email (Nodemailer) + SMS (Twilio, lazy-loaded)
 │   │   ├── lib/socket.js          Shared Socket.io emit helper
 │   │   ├── middleware/auth.js     JWT verification middleware
 │   │   └── routes/                auth, users, roles, teams, incidents,
@@ -213,17 +243,8 @@ npm run dev               # Vite on http://localhost:5173
 | `NODE_ENV` | `development` | `production` |
 | `FRONTEND_URL` | `http://localhost:5173` | `https://uv-scars.com` |
 | `UV_THREADPOOL_SIZE` | *(omit)* | `2` |
-| `SMTP_HOST` | *(blank — email disabled)* | your SMTP server |
-| `SMTP_PORT` | *(blank)* | `587` |
-| `SMTP_USER` | *(blank)* | your email address |
-| `SMTP_PASS` | *(blank)* | your email password |
-| `TWILIO_ACCOUNT_SID` | *(blank — SMS disabled)* | your Twilio Account SID |
-| `TWILIO_AUTH_TOKEN` | *(blank)* | your Twilio Auth Token |
-| `TWILIO_FROM` | *(blank)* | your Twilio phone number |
 | `FACEPP_API_KEY` | *(blank — optional)* | Face++ API key |
 | `FACEPP_API_SECRET` | *(blank — optional)* | Face++ API secret |
-
-> Email and SMS delivery are skipped automatically when credentials are not set — the app still works fully without them.
 
 ---
 
@@ -237,6 +258,8 @@ npm run db:seed      # seed default roles, teams, and accounts
 npm run db:studio    # open Prisma Studio visual browser
 npm run db:reset     # drop all data and re-apply schema + seed
 ```
+
+> **Schema migrations** (e.g. adding the `deletedAt` column) are applied automatically each time the server starts via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`. No manual migration step required after deployment.
 
 ### phpMyAdmin Import (Hostinger)
 
@@ -299,13 +322,15 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/incidents` | List all incidents |
-| POST | `/api/incidents` | Create incident (socket broadcasts to all clients) |
-| PUT | `/api/incidents/:id` | Update incident |
-| DELETE | `/api/incidents/:id` | Delete incident |
+| GET | `/api/incidents` | List active incidents (excludes soft-deleted) |
+| GET | `/api/incidents/deleted` | List soft-deleted incidents |
+| POST | `/api/incidents` | Create incident |
+| PUT | `/api/incidents/:id` | Update incident fields |
+| DELETE | `/api/incidents/:id` | Soft-delete (sets `deletedAt`; restorable) |
+| PATCH | `/api/incidents/:id/restore` | Restore a soft-deleted incident |
 | PATCH | `/api/incidents/:id/validate` | Mark as validated |
 | PATCH | `/api/incidents/:id/verify` | Mark as verified (approved) |
-| PATCH | `/api/incidents/:id/assign` | Assign to a response team |
+| PATCH | `/api/incidents/:id/assign` | Assign to a response team; sets status → In Progress |
 
 ### Teams
 
@@ -321,7 +346,7 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/notifications` | List all notifications |
-| POST | `/api/notifications` | Send notification (triggers email/SMS if configured) |
+| POST | `/api/notifications` | Send Web Push notification |
 | DELETE | `/api/notifications/:id` | Delete notification |
 
 ### Roles
@@ -330,7 +355,7 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 |---|---|---|
 | GET | `/api/roles` | List roles by level |
 | POST | `/api/roles` | Create role |
-| PUT | `/api/roles/:id` | Update role and permissions |
+| PUT | `/api/roles/:id` | Update role name, description, and permissions |
 | DELETE | `/api/roles/:id` | Delete role |
 
 ### Profile
@@ -356,21 +381,25 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 ## Real-time Events
 
 Socket.io broadcasts after every mutation. `AppContext` patches client state instantly — no page reload needed.
-State updates are socket-only (no duplicate optimistic updates from HTTP responses).
 
 | Event | Trigger |
 |---|---|
-| `incident:created` / `incident:updated` / `incident:deleted` | Any incident change |
+| `incident:created` | New incident reported |
+| `incident:updated` | Incident fields, status, assignment, or validation changed |
+| `incident:deleted` | Incident soft-deleted — payload includes `{ id, incident }` |
+| `incident:restored` | Soft-deleted incident restored — payload is the full incident |
 | `user:created` / `user:updated` / `user:deleted` | Any user change |
 | `notification:sent` / `notification:deleted` | Notification created or removed |
 | `team:updated` / `team:deleted` | Team change |
-| `role:updated` / `role:deleted` | Role change |
+| `role:updated` / `role:deleted` | Role change — sidebar navigation updates live for affected users |
 
 ---
 
 ## Pages & Access
 
-| Page | Route | Access |
+Access is controlled by the role's **permission settings** (configurable in System Administration). The table below reflects the default seed configuration.
+
+| Page | Route | Default Access |
 |---|---|---|
 | Login | `/` | Public |
 | Admin Dashboard | `/dashboard` | Admin |
@@ -379,12 +408,14 @@ State updates are socket-only (no duplicate optimistic updates from HTTP respons
 | Student Dashboard | `/student` | Student |
 | Profile | `/profile` | All roles |
 | FAQ & Help | `/faq` | All roles |
-| User Management | `/users` | Admin |
-| Incident Management | `/incidents` | Admin, Officer |
-| Response Management | `/response` | Admin, Officer, Responder |
-| Notification System | `/notifications` | Admin, Responder |
-| Reporting & Analytics | `/reports` | Admin, Officer |
-| System Administration | `/admin` | Admin |
+| User Management | `/users` | Admin (`admin` permission) |
+| Incident Management | `/incidents` | Admin, Officer, Responder, Student (`incidents` permission) |
+| Response Management | `/response` | Admin, Officer, Responder (`response` permission) |
+| Notification System | `/notifications` | Admin, Responder (`notifications` permission) |
+| Reporting & Analytics | `/reports` | Admin, Officer (`reports` permission) |
+| System Administration | `/admin` | Admin (`admin` permission) |
+
+Navigating directly to a route without the required permission redirects to the role's home dashboard.
 
 ---
 
@@ -405,7 +436,6 @@ Target: **< 40 OS threads/processes**. Estimated actual usage: **~8–12 threads
 | Socket.io `pingTimeout` | `15 s` | `server/index.js` |
 | Socket.io `maxHttpBufferSize` | `100 KB` | `server/index.js` |
 | Cache `MAX_ENTRIES` | `100` | `lib/cache.js` |
-| Twilio SDK | Lazy-loaded on first SMS | `lib/notify.js` |
 | Express body limit | `1 MB` (API) / `20 MB` (image routes) | `server/index.js` |
 
 ### Backend Optimizations
@@ -415,10 +445,10 @@ Target: **< 40 OS threads/processes**. Estimated actual usage: **~8–12 threads
 | **gzip compression** | `compression({ level: 6, threshold: 1024 })` on all responses |
 | **Database indexes** | Indexes on `Incident(status, type, priority, createdAt, assignedToId)`, `Notification(target, sentAt)`, `User(status, roleId)` |
 | **Auth JOIN queries** | Login + `/me` use `USER_ROLE_SELECT` join — eliminates a separate Role lookup |
-| **Teams parallel queries** | Member and incident queries run via `Promise.all()` |
 | **TTL cache** | 100-entry cap; expired entries evicted on insert |
 | **Static asset caching** | `maxAge: '1d', immutable` for hashed Vite bundles |
 | **SPA fallback** | `existsSync` called once at startup, not on every request |
+| **Schema migrations** | `ALTER TABLE IF NOT EXISTS` at startup — no manual migration step |
 
 ### Frontend Optimizations
 
@@ -426,7 +456,8 @@ Target: **< 40 OS threads/processes**. Estimated actual usage: **~8–12 threads
 |---|---|
 | **Request deduplication** | Concurrent identical GET requests share one `fetch()` promise |
 | **Memoized analytics** | All chart aggregations in `useMemo` — single pass over incidents array |
-| **Socket-only state updates** | `addIncident` / other mutations do not set state directly; socket event is the single source of truth — eliminates duplicate entries |
+| **Socket-only state updates** | Mutations do not update state directly; socket event is the single source of truth |
+| **Live permission sync** | Sidebar reads from live `roles` state — permission changes propagate without re-login |
 
 ### Database Indexes
 
@@ -532,7 +563,7 @@ hPanel → Node.js panel → **Run NPM command**: `run db:push`
 
 ### Updating
 
-Push to the tracked branch — Hostinger auto-deploys. If `prisma/schema.prisma` changed, run `db:push` manually via SSH after deploy (Prisma is a dev-only CLI tool and does not run during `npm install`).
+Push to the tracked branch — Hostinger auto-deploys. Schema migrations (new columns) are applied automatically on next server start.
 
 ---
 

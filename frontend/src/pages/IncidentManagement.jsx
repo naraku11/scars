@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   Trash2, CheckCircle, XCircle, Search, Eye, X,
-  MapPin, User, Clock, Tag, Shield, Users, Lock
+  MapPin, User, Clock, Tag, Shield, Users, Lock, RefreshCw, Zap
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { authApi } from '../services/api'
@@ -10,14 +10,14 @@ import p from '../components/Page.module.css'
 import s from './IncidentManagement.module.css'
 
 const PRIORITY_COLOR = { Critical: '#dc2626', High: '#f59e0b', Medium: '#3b82f6', Low: '#22c55e' }
-const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Closed: '#94a3b8', Rejected: '#dc2626' }
+const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Rejected: '#dc2626' }
 const PRIORITIES     = ['Critical', 'High', 'Medium', 'Low']
-const STATUSES       = ['Open', 'In Progress', 'Resolved', 'Closed', 'Rejected']
+const STATUSES       = ['Open', 'In Progress', 'Resolved', 'Rejected']
 
 export default function IncidentManagement() {
   const {
-    incidents, teams,
-    updateIncident, deleteIncident,
+    incidents, deletedIncidents, teams,
+    updateIncident, deleteIncident, restoreIncident,
     validateIncident, verifyIncident, assignIncident,
   } = useApp()
 
@@ -31,10 +31,10 @@ export default function IncidentManagement() {
   const [incTab,         setIncTab]         = useState('active')
 
   const allTypes    = ['All', ...new Set(incidents.map(i => i.type))]
-  const allStatuses = ['All', 'Open', 'In Progress', 'Closed', 'Rejected']
+  const allStatuses = ['All', 'Open', 'In Progress', 'Rejected']
 
   const activeFiltered = incidents.filter(i => {
-    if (i.status === 'Resolved') return false
+    if (i.status === 'Resolved' || i.status === 'Closed') return false
     const q = search.toLowerCase()
     const matchQ = !q || i.title.toLowerCase().includes(q) || i.location.toLowerCase().includes(q) || i.type.toLowerCase().includes(q)
     return matchQ
@@ -44,7 +44,7 @@ export default function IncidentManagement() {
   }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
   const resolvedFiltered = incidents.filter(i => {
-    if (i.status !== 'Resolved') return false
+    if (i.status !== 'Resolved' && i.status !== 'Closed') return false
     const q = search.toLowerCase()
     return !q || i.title.toLowerCase().includes(q) || i.location.toLowerCase().includes(q) || i.type.toLowerCase().includes(q)
   }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -121,6 +121,13 @@ export default function IncidentManagement() {
           <button className={`${p.subTab} ${incTab === 'resolved' ? p.activeSubTab : ''}`} onClick={() => setIncTab('resolved')}>
             Resolved ({resolvedFiltered.length})
           </button>
+          {deletedIncidents.length > 0 && (
+            <button className={`${p.subTab} ${incTab === 'deleted' ? p.activeSubTab : ''}`} onClick={() => setIncTab('deleted')}
+              style={{ color: incTab === 'deleted' ? undefined : '#94a3b8' }}>
+              <Trash2 size={12} style={{ display: 'inline', marginRight: 4 }} />
+              Deleted ({deletedIncidents.length})
+            </button>
+          )}
         </div>
 
         {/* ── Active Incidents ───────────────────────────────────── */}
@@ -197,6 +204,68 @@ export default function IncidentManagement() {
             </div>
           </div>
         )}
+        {/* ── Deleted Incidents ─────────────────────────────────── */}
+        {incTab === 'deleted' && (
+          <div className={p.card}>
+            <div className={p.sectionHeader}>
+              <span className={p.sectionTitle} style={{ color: '#94a3b8' }}>
+                <Trash2 size={15} style={{ display: 'inline', marginRight: 4 }} />
+                Deleted Incidents ({deletedIncidents.length})
+              </span>
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>Soft-deleted — restore to make active again</span>
+            </div>
+            <div className={p.tableWrap}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Incident</th><th>Type</th><th>Priority</th><th>Reporter</th><th>Deleted At</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deletedIncidents.map(inc => {
+                    const reporterName = inc.reportedBy ? (typeof inc.reportedBy === 'object' ? inc.reportedBy.name : inc.reportedBy) : '—'
+                    return (
+                      <tr key={inc.id} style={{ opacity: 0.7 }}>
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: '#94a3b8' }}>{inc.title}</div>
+                          <div style={{ fontSize: 11, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                            <MapPin size={10} /> {inc.location}
+                          </div>
+                        </td>
+                        <td><span className={s.typePill} style={{ opacity: 0.7 }}><Tag size={10} /> {inc.type}</span></td>
+                        <td>
+                          <span className={s.pill} style={{ background: PRIORITY_COLOR[inc.priority] + '22', color: PRIORITY_COLOR[inc.priority], opacity: 0.7 }}>
+                            {inc.priority}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: 12, color: '#94a3b8' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><User size={11} /> {reporterName}</div>
+                        </td>
+                        <td style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <Clock size={10} /> {inc.deletedAt ? new Date(inc.deletedAt).toLocaleString() : '—'}
+                          </div>
+                        </td>
+                        <td>
+                          <button
+                            className={`${p.btn} ${p.btnOutline} ${p.btnSm}`}
+                            disabled={busy[`restore-${inc.id}`]}
+                            onClick={act(`restore-${inc.id}`, () => restoreIncident(inc.id))}
+                            style={{ color: '#16a34a', borderColor: '#16a34a' }}
+                          >
+                            <RefreshCw size={11} /> {busy[`restore-${inc.id}`] ? '…' : 'Restore'}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {!deletedIncidents.length && <tr><td colSpan={6} className={p.empty}>No deleted incidents.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Detail Modal */}
@@ -204,6 +273,7 @@ export default function IncidentManagement() {
         <IncidentDetail
           inc={liveViewing}
           teams={teams}
+          incidents={incidents}
           onClose={() => setViewing(null)}
           onAssign={assignIncident}
           onStatusChange={(id, status) => updateIncident(id, { status })}
@@ -292,7 +362,7 @@ function IncidentRow({ inc, busy, act, setViewing, validateIncident, verifyIncid
               </button>
             </>
           )}
-          {allowDelete && (
+          {allowDelete && !(inc.validated && inc.verified) && (
             <>
               <div className={s.actionSep} />
               <button className={`${p.btn} ${p.btnDanger} ${p.btnSm} ${s.delBtn}`}
@@ -302,6 +372,11 @@ function IncidentRow({ inc, busy, act, setViewing, validateIncident, verifyIncid
               </button>
             </>
           )}
+          {allowDelete && inc.validated && inc.verified && (
+            <span title="Cannot delete — incident has been validated and verified" style={{ fontSize: 10, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 3, marginLeft: 4 }}>
+              <Lock size={10} /> Locked
+            </span>
+          )}
         </div>
       </td>
     </tr>
@@ -309,12 +384,45 @@ function IncidentRow({ inc, busy, act, setViewing, validateIncident, verifyIncid
 }
 
 // ── Incident Detail Modal ─────────────────────────────────────────────────────
-function IncidentDetail({ inc, teams, onClose, onAssign, onStatusChange, onValidate, onVerify, onReject, onDelete }) {
+function IncidentDetail({ inc, teams, incidents, onClose, onAssign, onStatusChange, onValidate, onVerify, onReject, onDelete }) {
   const { currentUser } = useApp()
   const [teamId, setTeamId]       = useState(inc.assignedTo?.id ?? '')
   const [status, setStatus]       = useState(inc.status)
   const [busy,   setBusy]         = useState({})
   const [error,  setError]        = useState('')
+
+  // Dynamic team status (On Duty if team has active assigned incidents)
+  const getTeamDynStatus = (team) => {
+    if (!incidents?.length) return team.status
+    const hasActive = incidents.some(i => {
+      const aid = typeof i.assignedTo === 'object' ? i.assignedTo?.id : i.assignedTo
+      return aid === team.id && i.status !== 'Resolved' && i.status !== 'Rejected' && i.status !== 'Closed'
+    })
+    return hasActive ? 'On Duty' : team.status
+  }
+
+  const handleAutoAssign = () => {
+    if (!teams.length) return
+    const typeLC = (inc.type || '').toLowerCase()
+    // 1. Specialty match + available
+    let best = teams.find(t => {
+      const spec = (t.specialty || '').toLowerCase()
+      return (spec && (spec.includes(typeLC) || typeLC.includes(spec))) && getTeamDynStatus(t) === 'Available'
+    })
+    // 2. Specialty match any status
+    if (!best) best = teams.find(t => {
+      const spec = (t.specialty || '').toLowerCase()
+      return spec && (spec.includes(typeLC) || typeLC.includes(spec))
+    })
+    // 3. Any available team
+    if (!best) best = teams.find(t => getTeamDynStatus(t) === 'Available')
+    // 4. First team
+    if (!best) best = teams[0]
+    if (best) {
+      setTeamId(best.id)
+      act('assign', () => onAssign(inc.id, best.id))()
+    }
+  }
   // Admin password override for resolved status
   const [pwOpen,    setPwOpen]    = useState(false)
   const [pwInput,   setPwInput]   = useState('')
@@ -419,17 +527,39 @@ function IncidentDetail({ inc, teams, onClose, onAssign, onStatusChange, onValid
             </div>
           ) : (
             <div className={s.actionSection}>
-              <div className={s.actionLabel}><Users size={13} /> Assign Response Team</div>
+              <div className={s.actionLabel} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span><Users size={13} /> Assign Response Team</span>
+                <button
+                  className={`${p.btn} ${p.btnSm}`}
+                  style={{ fontSize: 11, background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', gap: 5 }}
+                  disabled={busy.assign || !teams.length}
+                  onClick={handleAutoAssign}
+                  title="Auto-assign: matches team specialty to incident type"
+                >
+                  <Zap size={11} /> Auto Assign
+                </button>
+              </div>
               <div className={s.actionRow}>
                 <select value={teamId} onChange={e => setTeamId(e.target.value)} className={s.actionSelect}>
                   <option value="">— Unassigned —</option>
-                  {teams.map(t => <option key={t.id} value={t.id}>{t.name} ({t.status})</option>)}
+                  {teams.map(t => {
+                    const dyn = getTeamDynStatus(t)
+                    return <option key={t.id} value={t.id}>{t.name} — {dyn}{t.specialty ? ` · ${t.specialty}` : ''}</option>
+                  })}
                 </select>
                 <button className={`${p.btn} ${p.btnPrimary} ${p.btnSm}`} disabled={busy.assign}
                   onClick={act('assign', () => onAssign(inc.id, teamId ? +teamId : null))}>
                   {busy.assign ? '…' : 'Assign'}
                 </button>
               </div>
+              {teams.length > 0 && (
+                <div style={{ fontSize: 11, color: '#4a7a52', marginTop: 4 }}>
+                  Auto assigns best match for <strong>{inc.type}</strong> incidents
+                  {teams.filter(t => getTeamDynStatus(t) === 'Available').length > 0
+                    ? ` · ${teams.filter(t => getTeamDynStatus(t) === 'Available').length} team(s) available`
+                    : ' · no teams currently available'}
+                </div>
+              )}
             </div>
           )}
 
@@ -547,10 +677,14 @@ function IncidentDetail({ inc, teams, onClose, onAssign, onStatusChange, onValid
             )}
             {inc.status === 'Resolved'
               ? <span className={s.resolvedLock} style={{ marginLeft: 'auto' }}><CheckCircle size={13} /> Resolved — cannot be deleted</span>
-              : <button className={`${p.btn} ${p.btnDanger} ${p.btnSm}`} style={{ marginLeft: 'auto' }}
-                  disabled={busy.delete} onClick={act('delete', () => onDelete(inc.id))}>
-                  <Trash2 size={13} /> {busy.delete ? 'Deleting…' : 'Delete Incident'}
-                </button>
+              : (inc.validated && inc.verified)
+                ? <span className={s.resolvedLock} style={{ marginLeft: 'auto', color: '#94a3b8', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                    <Lock size={13} /> Validated &amp; verified — deletion locked
+                  </span>
+                : <button className={`${p.btn} ${p.btnDanger} ${p.btnSm}`} style={{ marginLeft: 'auto' }}
+                    disabled={busy.delete} onClick={act('delete', () => onDelete(inc.id))}>
+                    <Trash2 size={13} /> {busy.delete ? 'Deleting…' : 'Delete Incident'}
+                  </button>
             }
           </div>
         </div>

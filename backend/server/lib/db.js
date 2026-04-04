@@ -47,7 +47,7 @@ export const USER_ROLE_SELECT = `
 export const INCIDENT_SELECT = `
   SELECT i.id, i.title, i.type, i.priority, i.location, i.description,
          i.status, i.validated, i.verified, i.media,
-         i.createdAt, i.updatedAt, i.reportedById, i.assignedToId,
+         i.createdAt, i.updatedAt, i.deletedAt, i.reportedById, i.assignedToId,
          rb.id AS rb_id, rb.name AS rb_name, rb.avatar AS rb_avatar,
          t.id AS t_id, t.name AS t_name, t.status AS t_status, t.specialty AS t_specialty
   FROM Incident i
@@ -106,6 +106,7 @@ export function mapIncident(row) {
     media: parseJson(row.media) ?? [],
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
     reportedById: row.reportedById,
     assignedToId: row.assignedToId ?? null,
     reportedBy: { id: row.rb_id, name: row.rb_name, avatar: row.rb_avatar },

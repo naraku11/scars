@@ -17,10 +17,18 @@ router.get('/', async (req, res) => {
     const cached = cacheGet('incidents')
     if (cached) return res.json(cached)
 
-    const [rows] = await pool.execute(`${INCIDENT_SELECT} ORDER BY i.createdAt DESC`)
+    const [rows] = await pool.execute(`${INCIDENT_SELECT} WHERE i.deletedAt IS NULL ORDER BY i.createdAt DESC`)
     const incidents = rows.map(mapIncident)
     cacheSet('incidents', incidents, 30_000)
     res.json(incidents)
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Must be registered before /:id to avoid collision
+router.get('/deleted', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`${INCIDENT_SELECT} WHERE i.deletedAt IS NOT NULL ORDER BY i.deletedAt DESC`)
+    res.json(rows.map(mapIncident))
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -75,10 +83,22 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const id = +req.params.id
-    await pool.execute('DELETE FROM Incident WHERE id = ?', [id])
+    await pool.execute('UPDATE Incident SET deletedAt = NOW() WHERE id = ?', [id])
+    const incident = await fetchIncident(id)
     cacheDel('incidents')
-    emit('incident:deleted', { id })
-    res.json({ ok: true })
+    emit('incident:deleted', { id, incident })
+    res.json(incident)
+  } catch (e) { res.status(400).json({ error: e.message }) }
+})
+
+router.patch('/:id/restore', async (req, res) => {
+  try {
+    const id = +req.params.id
+    await pool.execute('UPDATE Incident SET deletedAt = NULL WHERE id = ?', [id])
+    const incident = await fetchIncident(id)
+    cacheDel('incidents')
+    emit('incident:restored', incident)
+    res.json(incident)
   } catch (e) { res.status(400).json({ error: e.message }) }
 })
 

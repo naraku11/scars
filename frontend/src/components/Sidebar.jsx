@@ -6,47 +6,34 @@ import {
 } from 'lucide-react'
 import s from './Sidebar.module.css'
 
+// Dashboard route per role — always visible regardless of permissions
+const ROLE_DASHBOARD = {
+  Admin:     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  Officer:   { to: '/officer',   label: 'Dashboard', icon: LayoutDashboard },
+  Responder: { to: '/responder', label: 'Dashboard', icon: LayoutDashboard },
+  Student:   { to: '/student',   label: 'Dashboard', icon: LayoutDashboard },
+}
 
-const ADMIN_NAV = [
-  { to: '/dashboard',      label: 'Dashboard',              icon: LayoutDashboard },
-  { to: '/users',          label: 'User Management',        icon: Users },
-  { to: '/incidents',      label: 'Incident Management',    icon: AlertTriangle },
-  { to: '/response',       label: 'Response Management',    icon: Shield },
-  { to: '/notifications',  label: 'Notification System',    icon: Bell },
-  { to: '/reports',        label: 'Reporting & Analytics',  icon: BarChart2 },
-  { to: '/admin',          label: 'System Administration',  icon: Settings },
-]
-
-const OFFICER_NAV = [
-  { to: '/officer',        label: 'Dashboard',              icon: LayoutDashboard },
-  { to: '/incidents',      label: 'Incident Management',    icon: AlertTriangle },
-  { to: '/response',       label: 'Response Management',    icon: Shield },
-  { to: '/reports',        label: 'Reporting & Analytics',  icon: BarChart2 },
-]
-
-const RESPONDER_NAV = [
-  { to: '/responder',      label: 'Dashboard',              icon: LayoutDashboard },
-  { to: '/incidents',      label: 'Incidents',              icon: AlertTriangle },
-  { to: '/notifications',  label: 'Notifications',          icon: Bell },
-]
-
-const STUDENT_NAV = [
-  { to: '/student',        label: 'Dashboard',              icon: LayoutDashboard },
+// Permission-gated nav items — shown only when role has that permission
+const PERM_NAV = [
+  { perm: 'incidents',     to: '/incidents',     label: 'Incident Management',   icon: AlertTriangle },
+  { perm: 'response',      to: '/response',      label: 'Response Management',   icon: Shield },
+  { perm: 'notifications', to: '/notifications', label: 'Notification System',   icon: Bell },
+  { perm: 'reports',       to: '/reports',       label: 'Reporting & Analytics', icon: BarChart2 },
+  { perm: 'admin',         to: '/users',         label: 'User Management',       icon: Users },
+  { perm: 'admin',         to: '/admin',         label: 'System Administration', icon: Settings },
 ]
 
 const FAQ_ITEM = { to: '/faq', label: 'FAQ & Help', icon: HelpCircle }
 
-function getNavItems(roleName) {
-  switch (roleName) {
-    case 'Admin':     return [...ADMIN_NAV,     FAQ_ITEM]
-    case 'Officer':   return [...OFFICER_NAV,   FAQ_ITEM]
-    case 'Responder': return [...RESPONDER_NAV, FAQ_ITEM]
-    default:          return [...STUDENT_NAV,   FAQ_ITEM]
-  }
+function buildNavItems(roleName, perms) {
+  const dashboard = ROLE_DASHBOARD[roleName] ?? ROLE_DASHBOARD.Student
+  const gated = PERM_NAV.filter(item => perms?.[item.perm])
+  return [dashboard, ...gated, FAQ_ITEM]
 }
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { currentUser, systemConfig } = useApp()
+  const { currentUser, systemConfig, roles } = useApp()
   const logoImage = systemConfig?.logoImage
 
   const rawName  = systemConfig?.siteName || 'UV Toledo Campus — SCARS'
@@ -58,7 +45,11 @@ export default function Sidebar({ isOpen, onClose }) {
     ? currentUser.role?.name
     : currentUser?.role
 
-  const navItems = getNavItems(roleName)
+  // Use live roles state so permission changes propagate instantly
+  const liveRole = roles.find(r => r.name === roleName)
+  const perms    = liveRole?.permissions ?? (typeof currentUser?.role === 'object' ? currentUser.role?.permissions : {}) ?? {}
+
+  const navItems = buildNavItems(roleName, perms)
 
   return (
     <aside className={`${s.sidebar} ${isOpen ? s.open : ''}`}>

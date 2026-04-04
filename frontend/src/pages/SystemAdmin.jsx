@@ -8,6 +8,33 @@ import s from './SystemAdmin.module.css'
 const PERM_KEYS   = ['incidents', 'response', 'notifications', 'reports', 'admin']
 const PERM_LABELS = { incidents: 'Incidents', response: 'Response', notifications: 'Notifications', reports: 'Reports', admin: 'Admin' }
 
+// What pages each permission unlocks (for the preview)
+const PERM_PAGES = {
+  incidents:     ['Incident Management'],
+  response:      ['Response Management'],
+  notifications: ['Notification System'],
+  reports:       ['Reporting & Analytics'],
+  admin:         ['User Management', 'System Administration'],
+}
+
+function PermPreview({ permissions }) {
+  const pages = ['Dashboard']
+  PERM_KEYS.forEach(k => {
+    if (permissions?.[k]) pages.push(...PERM_PAGES[k])
+  })
+  pages.push('FAQ & Help')
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+      {pages.map(pg => (
+        <span key={pg} style={{
+          fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
+          background: '#E8F5E9', color: '#1B5E20', border: '1px solid #C8E6C9',
+        }}>{pg}</span>
+      ))}
+    </div>
+  )
+}
+
 export default function SystemAdmin() {
   const { roles, updateRole, systemConfig, saveSystemConfig } = useApp()
   const [tab, setTab]         = useState('roles')
@@ -76,7 +103,10 @@ export default function SystemAdmin() {
 
         {tab === 'roles' && (
           <div className={p.card}>
-            <div className={p.sectionTitle} style={{ marginBottom: 16 }}>Role &amp; Permission Management</div>
+            <div className={p.sectionTitle} style={{ marginBottom: 4 }}>Role &amp; Permission Management</div>
+            <p style={{ fontSize: 12, color: '#4a7a52', marginBottom: 16 }}>
+              Toggling permissions controls which pages and features are accessible to each role. Changes take effect immediately for online users.
+            </p>
             <div className={p.tableWrap}>
               <table>
                 <thead>
@@ -90,64 +120,78 @@ export default function SystemAdmin() {
                 <tbody>
                   {roles.map(role => {
                     const isAdmin = role.name.toLowerCase() === 'admin'
+                    const isEditing = editingRole?.id === role.id && !isAdmin
+                    const displayPerms = isEditing ? editingRole.permissions : role.permissions
                     return (
-                    <tr key={role.id}>
-                      {editingRole?.id === role.id && !isAdmin ? (
-                        <>
-                          <td>
-                            <input
-                              value={editingRole.name}
-                              onChange={e => setEditingRole(r => ({ ...r, name: e.target.value }))}
-                              style={{ border: '1px solid #C8E6C9', borderRadius: 4, padding: '4px 8px', fontSize: 13, width: 110 }}
-                            />
+                      <>
+                        <tr key={role.id}>
+                          {isEditing ? (
+                            <>
+                              <td>
+                                <input
+                                  value={editingRole.name}
+                                  onChange={e => setEditingRole(r => ({ ...r, name: e.target.value }))}
+                                  style={{ border: '1px solid #C8E6C9', borderRadius: 4, padding: '4px 8px', fontSize: 13, width: 110 }}
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  value={editingRole.description}
+                                  onChange={e => setEditingRole(r => ({ ...r, description: e.target.value }))}
+                                  style={{ border: '1px solid #C8E6C9', borderRadius: 4, padding: '4px 8px', fontSize: 13, width: 200 }}
+                                />
+                              </td>
+                              {PERM_KEYS.map(k => (
+                                <td key={k} style={{ textAlign: 'center' }}>
+                                  <input type="checkbox" checked={editingRole.permissions[k] ?? false} onChange={() => togglePerm(k)} />
+                                </td>
+                              ))}
+                              <td>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  <button className={`${p.btn} ${p.btnSuccess} ${p.btnSm}`} onClick={handleUpdateRole}><Save size={12} /></button>
+                                  <button className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => setEditingRole(null)}><X size={12} /></button>
+                                </div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td>
+                                <span className={s.roleChip} style={{ background: role.color + '22', color: role.color, borderColor: role.color + '44' }}>
+                                  {role.name}
+                                </span>
+                              </td>
+                              <td style={{ color: '#4a7a52', fontSize: 12 }}>{role.description}</td>
+                              {PERM_KEYS.map(k => (
+                                <td key={k} style={{ textAlign: 'center' }}>
+                                  {role.permissions[k]
+                                    ? <CheckCircle size={16} color="#22c55e" />
+                                    : <X size={16} color="#d1dfe8" />}
+                                </td>
+                              ))}
+                              <td>
+                                {isAdmin ? (
+                                  <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>Protected</span>
+                                ) : (
+                                  <button className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => setEditingRole({ ...role })}>
+                                    <Edit2 size={12} />
+                                  </button>
+                                )}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                        {/* Access preview row */}
+                        <tr key={`${role.id}-preview`} style={{ background: isEditing ? '#fffbeb' : '#f8fdf8' }}>
+                          <td colSpan={2} style={{ fontSize: 11, color: '#4a7a52', paddingTop: 4, paddingBottom: 10, fontStyle: 'italic' }}>
+                            {isEditing ? 'Live preview — unsaved:' : 'Can access:'}
                           </td>
-                          <td>
-                            <input
-                              value={editingRole.description}
-                              onChange={e => setEditingRole(r => ({ ...r, description: e.target.value }))}
-                              style={{ border: '1px solid #C8E6C9', borderRadius: 4, padding: '4px 8px', fontSize: 13, width: 200 }}
-                            />
+                          <td colSpan={PERM_KEYS.length + 1} style={{ paddingTop: 4, paddingBottom: 10 }}>
+                            <PermPreview permissions={displayPerms} />
                           </td>
-                          {PERM_KEYS.map(k => (
-                            <td key={k} style={{ textAlign: 'center' }}>
-                              <input type="checkbox" checked={editingRole.permissions[k] ?? false} onChange={() => togglePerm(k)} />
-                            </td>
-                          ))}
-                          <td>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <button className={`${p.btn} ${p.btnSuccess} ${p.btnSm}`} onClick={handleUpdateRole}><Save size={12} /></button>
-                              <button className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => setEditingRole(null)}><X size={12} /></button>
-                            </div>
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td>
-                            <span className={s.roleChip} style={{ background: role.color + '22', color: role.color, borderColor: role.color + '44' }}>
-                              {role.name}
-                            </span>
-                          </td>
-                          <td style={{ color: '#4a7a52', fontSize: 12 }}>{role.description}</td>
-                          {PERM_KEYS.map(k => (
-                            <td key={k} style={{ textAlign: 'center' }}>
-                              {role.permissions[k]
-                                ? <CheckCircle size={16} color="#22c55e" />
-                                : <X size={16} color="#d1dfe8" />}
-                            </td>
-                          ))}
-                          <td>
-                            {isAdmin ? (
-                              <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>Protected</span>
-                            ) : (
-                              <button className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => setEditingRole({ ...role })}>
-                                <Edit2 size={12} />
-                              </button>
-                            )}
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  )})}
+                        </tr>
+                      </>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
