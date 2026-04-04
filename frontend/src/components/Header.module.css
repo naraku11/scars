@@ -134,7 +134,7 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 340px;
+  width: 420px;
   background: #fff;
   border: 1px solid #C8E6C9;
   border-radius: 12px;
@@ -154,6 +154,27 @@
     width: calc(100vw - 24px);
     right: -12px;
   }
+}
+
+/* Clickable notification item */
+.notifClickable {
+  cursor: pointer;
+}
+.notifClickable:hover {
+  background: #E8F5E9 !important;
+}
+.notifClickable:focus-visible {
+  outline: 2px solid #2E7D32;
+  outline-offset: -2px;
+}
+
+.notifIncidentTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #2563eb;
+  font-weight: 600;
 }
 
 .dropHeader {

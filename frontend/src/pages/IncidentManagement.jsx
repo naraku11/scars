@@ -253,10 +253,10 @@ function IncidentRow({ inc, busy, act, setViewing, validateIncident, verifyIncid
       <td>
         <div className={s.progressBadges}>
           <span className={`${s.progBadge} ${inc.validated ? s.progDone : ''}`}>
-            {inc.validated ? <CheckCircle size={11} /> : <XCircle size={11} />} Val
+            {inc.validated ? <CheckCircle size={11} /> : <XCircle size={11} />} Validate
           </span>
           <span className={`${s.progBadge} ${inc.verified ? s.progDone : ''}`}>
-            {inc.verified ? <CheckCircle size={11} /> : <XCircle size={11} />} Ver
+            {inc.verified ? <CheckCircle size={11} /> : <XCircle size={11} />} Verify
           </span>
         </div>
       </td>

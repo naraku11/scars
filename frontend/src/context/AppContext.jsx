@@ -7,6 +7,47 @@ import {
 
 const AppContext = createContext()
 
+// ── Sound alert helper ───────────────────────────────────────────────────────
+function playIncidentSound(priority) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    // Pattern: array of { freq (Hz), dur (s) }. freq=0 = silence gap.
+    const patterns = {
+      Critical: [
+        { freq: 880, dur: 0.12 }, { freq: 0, dur: 0.04 },
+        { freq: 880, dur: 0.12 }, { freq: 0, dur: 0.04 },
+        { freq: 1100, dur: 0.35 },
+      ],
+      High: [
+        { freq: 660, dur: 0.18 }, { freq: 0, dur: 0.05 },
+        { freq: 660, dur: 0.25 },
+      ],
+      Medium: [{ freq: 440, dur: 0.3 }],
+      Low:    [{ freq: 330, dur: 0.2 }],
+    }
+    const pattern = patterns[priority] || patterns.Low
+    const oscType = priority === 'Critical' ? 'square' : priority === 'High' ? 'sawtooth' : 'sine'
+    let t = ctx.currentTime + 0.05
+    pattern.forEach(({ freq, dur }) => {
+      if (freq > 0) {
+        const osc  = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.type = oscType
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0.28, t)
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur)
+        osc.start(t)
+        osc.stop(t + dur)
+      }
+      t += dur
+    })
+  } catch { /* AudioContext unavailable */ }
+}
+
 export function AppProvider({ children }) {
   const [currentUser, setCurrentUser]     = useState(null)
   const [users, setUsers]                 = useState([])
@@ -14,10 +55,14 @@ export function AppProvider({ children }) {
   const [teams, setTeams]                 = useState([])
   const [incidents, setIncidents]         = useState([])
   const [notifications, setNotifications] = useState([])
+  const [incidentAlerts, setIncidentAlerts] = useState([])   // in-app incident notifications
   const [backupConfig, setBackupConfig]   = useState({})
   const [systemConfig, setSystemConfig]   = useState({})
   const [loading, setLoading]             = useState(false)
   const [initialized, setInitialized]     = useState(false)
+
+  const currentUserRef = useRef(null)
+  useEffect(() => { currentUserRef.current = currentUser }, [currentUser])
 
   // ── Real-time: Socket.io ─────────────────────────────────────────────
   const socketRef = useRef(null)
@@ -28,9 +73,27 @@ export function AppProvider({ children }) {
     socketRef.current = socket
 
     // Incidents
-    socket.on('incident:created', (inc) =>
+    socket.on('incident:created', (inc) => {
       setIncidents(prev => prev.some(i => i.id === inc.id) ? prev : [inc, ...prev])
-    )
+      // Push as in-app alert notification for all roles except Student
+      const u = currentUserRef.current
+      const rn = typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '')
+      if (rn !== 'Student') {
+        const alertType = inc.priority === 'Critical' ? 'Emergency'
+          : inc.priority === 'High' ? 'Alert' : 'Info'
+        setIncidentAlerts(prev => [{
+          id:         `inc-${inc.id}-${Date.now()}`,
+          incidentId: inc.id,
+          type:       alertType,
+          title:      `New Incident: ${inc.title}`,
+          message:    `${inc.type} · ${inc.location} · ${inc.priority} priority`,
+          target:     'All',
+          sentAt:     inc.createdAt || new Date().toISOString(),
+          priority:   inc.priority,
+        }, ...prev.slice(0, 49)])
+        playIncidentSound(inc.priority)
+      }
+    })
     socket.on('incident:updated', (inc) =>
       setIncidents(prev => prev.map(i => i.id === inc.id ? inc : i))
     )
@@ -81,7 +144,7 @@ export function AppProvider({ children }) {
     )
 
     return () => socket.disconnect()
-  }, [])
+  }, []) // eslint-disable-line
 
   // ── Bootstrap: restore session & load all data ──────────────────────
   const loadAll = useCallback(async () => {
@@ -253,7 +316,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       currentUser, login, logout,
-      users, roles, teams, incidents, notifications, backupConfig, systemConfig,
+      users, roles, teams, incidents, notifications, incidentAlerts, backupConfig, systemConfig,
       loading, initialized,
       addIncident, updateIncident, deleteIncident, validateIncident, verifyIncident,
       assignIncident, updateStatus,

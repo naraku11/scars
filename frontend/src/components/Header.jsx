@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Menu, X, CheckCircle, AlertTriangle, Info, Zap, ShieldCheck } from 'lucide-react'
-import { useOutletContext } from 'react-router-dom'
+import { Bell, Menu, X, CheckCircle, AlertTriangle, Info, Zap, ShieldCheck, ExternalLink } from 'lucide-react'
+import { useOutletContext, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import s from './Header.module.css'
 
@@ -29,9 +29,10 @@ function timeAgo(dateStr) {
 }
 
 export default function Header({ title, subtitle }) {
-  const { notifications, currentUser, systemConfig } = useApp()
+  const { notifications, incidentAlerts, currentUser, systemConfig } = useApp()
   const logoImage = systemConfig?.logoImage
   const ctx = useOutletContext()
+  const navigate = useNavigate()
 
   const [open, setOpen]       = useState(false)
   const [readIds, setReadIds] = useState(() => {
@@ -46,8 +47,11 @@ export default function Header({ title, subtitle }) {
   const TARGET_MAP = { Admin: 'Admin', Officer: 'Officers', Responder: 'Responders', Student: 'Students' }
   const myTarget   = TARGET_MAP[roleName] ?? ''
 
-  const sorted = [...notifications]
+  const dbNotifs = [...notifications]
     .filter(n => n.target === 'All' || n.target === myTarget)
+
+  // Merge DB notifications with in-app incident alerts (incidents always target non-students)
+  const sorted = [...dbNotifs, ...(incidentAlerts || [])]
     .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
 
   const unread  = sorted.filter(n => !readIds.has(n.id)).length
@@ -135,11 +139,24 @@ export default function Header({ title, subtitle }) {
                   </div>
                 ) : (
                   sorted.slice(0, 20).map(n => {
-                    const Icon  = TYPE_ICON[n.type] ?? Info
-                    const color = TYPE_COLOR[n.type] ?? '#4a7a52'
-                    const isNew = !readIds.has(n.id)
+                    const Icon     = TYPE_ICON[n.type] ?? Info
+                    const color    = TYPE_COLOR[n.type] ?? '#4a7a52'
+                    const isNew    = !readIds.has(n.id)
+                    const isIncident = !!n.incidentId
+                    const handleClick = () => {
+                      setOpen(false)
+                      if (isIncident) navigate('/incidents')
+                      else navigate('/notifications')
+                    }
                     return (
-                      <div key={n.id} className={`${s.notifItem} ${isNew ? s.notifNew : ''}`}>
+                      <div
+                        key={n.id}
+                        className={`${s.notifItem} ${isNew ? s.notifNew : ''} ${s.notifClickable}`}
+                        onClick={handleClick}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => e.key === 'Enter' && handleClick()}
+                      >
                         <div className={s.notifIcon} style={{ background: color + '18', color }}>
                           <Icon size={14} />
                         </div>
@@ -151,7 +168,10 @@ export default function Header({ title, subtitle }) {
                           <div className={s.notifMsg}>{n.message}</div>
                           <div className={s.notifMeta}>
                             <span className={s.notifType} style={{ background: color + '18', color }}>{n.type}</span>
-                            <span className={s.notifTarget}>→ {n.target}</span>
+                            {isIncident
+                              ? <span className={s.notifIncidentTag}><ExternalLink size={9} /> View Incident</span>
+                              : <span className={s.notifTarget}>→ {n.target}</span>
+                            }
                           </div>
                         </div>
                       </div>

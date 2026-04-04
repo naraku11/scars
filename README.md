@@ -41,21 +41,21 @@ Campus safety and incident management platform — real-time reporting, response
 
 ### Incident Management
 - Full lifecycle: **Report → Validate → Verify → Assign Team → Resolve**
-- Incidents cannot be resolved unless validated, verified, and assigned to a response team
+- Incidents cannot be resolved unless **Validated**, **Verified**, and assigned to a response team (full words shown in progress indicators)
 - Active and Resolved sub-tabs with separate views
 - All reports show **submitter name** and **full timestamp** across every dashboard
 
 ### Response Management
 - **Personnel tab** — browse all Officers and Responders with team assignments
-- **Teams tab** — roster view; create/edit teams with member picker
-- **Assignments tab** — unassigned and assigned incident cards with reassignment controls
-- **Status Tracking tab** — active incidents with live status select; resolved incidents locked behind password confirmation
+- **Teams tab** — roster view; create/edit teams with member picker; team status **dynamically reflects active incident assignments** (auto shows "On Duty" when team has active incidents)
+- **Assignments tab** — unassigned and assigned incident cards with corrected status badges and team chips showing live dynamic status
+- **Status Tracking tab** — active incidents with live status select; resolved incidents locked behind password confirmation; **Admin role bypasses the password check** entirely
 
 ### Dashboards (Role-Specific)
-- **Admin** — system overview, incident stats, status breakdown, quick actions; recent incidents table includes reporter name and timestamp
-- **Officer** — active incidents with reporter name, timestamp, team assignment column, and validate/verify actions
-- **Responder** — team-assigned incidents with reporter name and timestamp; **All Recent Reports** section shows the latest 10 campus-wide reports regardless of team assignment
-- **Student** — report an incident; track submitted reports with full timestamps
+- **Admin** — system overview, incident stats, status breakdown, quick actions; status tracking resolved-incident reopen requires no password for Admin role
+- **Officer** — active incidents with reporter name, timestamp, team assignment column, and full Validate/Verify action labels; sound alert on new incident
+- **Responder** — team-assigned incidents shown **read-only** (no status editing, no delete); **All Recent Reports** section shows the latest 10 campus-wide reports; sound alert on new incident
+- **Student** — report an incident; track submitted reports with full timestamps; Campus Alerts show title and message only (no type badge)
 
 ### Reporting & Analytics
 - Filters to **Critical and High priority incidents only**
@@ -72,7 +72,9 @@ Campus safety and incident management platform — real-time reporting, response
 
 ### System
 - Real-time updates via Socket.io — every mutation is broadcast to all clients; duplicate-safe (socket-only state update, no race condition)
-- Role-based notifications — bell panel filtered per role with unread badge and ring animation
+- Role-based notifications — bell panel filtered per role with unread badge and ring animation; **panel is 420 px wide on desktop**, all items are **clickable** (routes to Notification System or Incidents page)
+- **Incident alerts in bell panel** — when a new incident is created, Officers and Admins see an in-app alert in the bell dropdown with a "View Incident" link
+- **Sound alerts** — new incidents trigger a Web Audio API tone based on priority (Critical = urgent triple beep, High = double beep, others = single tone); plays for Officers and Admins
 - Profile management — edit name, email, password, and photo; optional Face++ face verification
 - Dynamic branding — admin uploads logo; updates favicon, tab title, sidebar, login screen, and loading screen
 - TTL in-memory cache (max 100 entries) with auto-eviction and pattern-based purge
@@ -86,10 +88,10 @@ Campus safety and incident management platform — real-time reporting, response
 
 | Role | Level | Dashboard | Incidents | Response | Notifications | Reports | Admin |
 |---|---|---|---|---|---|---|---|
-| Admin | 1 | `/dashboard` | Full | Full | Full | Full (Critical+High) | Full |
-| Officer | 2 | `/officer` | Validate/Verify/Assign | View/Assign | — | View (Critical+High) | — |
-| Responder | 3 | `/responder` | View/Update status + All Reports | View | Receive | — | — |
-| Student | 4 | `/student` | Report only | — | — | — | — |
+| Admin | 1 | `/dashboard` | Full | Full + bypass password | Full | Full (Critical+High) | Full |
+| Officer | 2 | `/officer` | Validate/Verify/Assign + sound alerts | View/Assign | Sound alerts | View (Critical+High) | — |
+| Responder | 3 | `/responder` | View only (no edit/delete) + All Reports | View + sound alerts | Receive | — | — |
+| Student | 4 | `/student` | Report only | — | No type badge in alerts | — | — |
 
 Login automatically redirects each role to their dashboard.
 

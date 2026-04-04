@@ -212,22 +212,15 @@ export default function StudentDashboard() {
                 <span className={p.sectionTitle}>Campus Alerts</span>
                 <span style={{ fontSize: 11, color: '#4a7a52' }}>{recentAlerts.length} recent</span>
               </div>
-              {recentAlerts.map(n => {
-                const typeBg = { Emergency: '#fee2e2', Alert: '#fef3c7', Warning: '#fef3c7', Info: '#E8F5E9' }
-                const typeClr = { Emergency: '#dc2626', Alert: '#d97706', Warning: '#d97706', Info: '#1B5E20' }
-                return (
-                  <div key={n.id} className={s.alertItem}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className={s.pill} style={{ fontSize: 10, background: typeBg[n.type] || '#E8F5E9', color: typeClr[n.type] || '#1B5E20', border: `1px solid ${typeClr[n.type] || '#C8E6C9'}33` }}>{n.type || 'Info'}</span>
-                      <span style={{ fontWeight: 600, fontSize: 13 }}>{n.title}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: '#4a7a52', marginTop: 4, lineHeight: 1.4 }}>{n.message}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                      {n.sentAt ? new Date(n.sentAt).toLocaleString() : '—'}
-                    </div>
+              {recentAlerts.map(n => (
+                <div key={n.id} className={s.alertItem}>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{n.title}</div>
+                  <div style={{ fontSize: 12, color: '#4a7a52', lineHeight: 1.4 }}>{n.message}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    {n.sentAt ? new Date(n.sentAt).toLocaleString() : '—'}
                   </div>
-                )
-              })}
+                </div>
+              ))}
               {!recentAlerts.length && <div className={p.empty}>No campus alerts.</div>}
             </div>
 

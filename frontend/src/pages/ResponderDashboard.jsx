@@ -1,21 +1,17 @@
-import { useState } from 'react'
 import {
   AlertTriangle, CheckCircle, Clock, Users,
-  Activity, ChevronDown, Bell, XCircle, FileText
+  Activity, FileText
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import Header from '../components/Header'
 import p from '../components/Page.module.css'
 import s from './RoleDashboard.module.css'
 
-const STATUS_OPTIONS = ['Open', 'In Progress', 'Resolved', 'Closed']
 const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Closed: '#94a3b8' }
 const PRIORITY_COLOR = { Critical: '#dc2626', High: '#f59e0b', Medium: '#3b82f6', Low: '#22c55e' }
 
 export default function ResponderDashboard() {
-  const { incidents, teams, notifications, updateStatus, currentUser } = useApp()
-
-  const [busy, setBusy] = useState({})
+  const { incidents, teams, notifications, currentUser } = useApp()
 
   // Find my team — the team that has me as a member
   const userId = currentUser?.id
@@ -42,11 +38,6 @@ export default function ResponderDashboard() {
   const recentNotifs = [...notifications]
     .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
     .slice(0, 5)
-
-  const handleStatus = async (id, status) => {
-    setBusy(b => ({ ...b, [id]: true }))
-    try { await updateStatus(id, status) } finally { setBusy(b => ({ ...b, [id]: false })) }
-  }
 
   const members = myTeam?.members ?? []
 
@@ -93,7 +84,7 @@ export default function ResponderDashboard() {
             <div className={p.tableWrap}>
               <table>
                 <thead><tr>
-                  <th>Incident</th><th>Reported By</th><th>Priority</th><th>Status</th><th>Update Status</th>
+                  <th>Incident</th><th>Reported By</th><th>Priority</th><th>Status</th>
                 </tr></thead>
                 <tbody>
                   {myIncidents.map(inc => (
@@ -115,38 +106,6 @@ export default function ResponderDashboard() {
                         <span className={s.pill} style={{ background: STATUS_COLOR[inc.status] + '22', color: STATUS_COLOR[inc.status] }}>
                           {inc.status}
                         </span>
-                      </td>
-                      <td>
-                        {(() => {
-                          const canResolve = inc.validated && inc.verified && inc.assignedTo
-                          return (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <select
-                                  value={inc.status}
-                                  onChange={e => handleStatus(inc.id, e.target.value)}
-                                  disabled={busy[inc.id]}
-                                  style={{ fontSize: 12, padding: '4px 6px' }}
-                                >
-                                  {STATUS_OPTIONS.map(st => (
-                                    <option key={st} value={st} disabled={st === 'Resolved' && !canResolve}>
-                                      {st}{st === 'Resolved' && !canResolve ? ' (locked)' : ''}
-                                    </option>
-                                  ))}
-                                </select>
-                                {busy[inc.id] && <span style={{ fontSize: 11, color: '#4a7a52' }}>Saving…</span>}
-                              </div>
-                              {!canResolve && (
-                                <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
-                                  Resolve needs:{' '}
-                                  {!inc.validated && 'validation · '}
-                                  {!inc.verified && 'approval · '}
-                                  {!inc.assignedTo && 'team assignment'}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })()}
                       </td>
                     </tr>
                   ))}

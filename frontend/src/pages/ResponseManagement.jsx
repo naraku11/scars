@@ -161,8 +161,9 @@ export default function ResponseManagement() {
     try { await deleteTeam(id); setSuccess('Team deleted.') } catch (err) { setError(err.message) }
   }
 
-  // ── Resolved status change — requires password ────────────────────────────
+  // ── Resolved status change — requires password (Admin bypasses) ─────────
   const userRoleName = roleName(currentUser)
+  const isAdmin = userRoleName === 'Admin'
   const canModifyResolved = currentUser && userRoleName !== 'Student'
 
   const handleResolvedStatusChange = (incId, newStatus) => {
@@ -170,9 +171,24 @@ export default function ResponseManagement() {
       setError('Students cannot modify resolved incidents.')
       return
     }
+    // Admin bypasses password check entirely
+    if (isAdmin) {
+      handleStatus(incId, newStatus)
+      setSuccess('Status updated.')
+      return
+    }
     setPwInput('')
     setPwError('')
     setPwModal({ incId, newStatus })
+  }
+
+  // ── Dynamic team status based on active assigned incidents ─────────────
+  const getTeamDynamicStatus = (team) => {
+    const hasActive = incidents.some(i => {
+      const aid = typeof i.assignedTo === 'object' ? i.assignedTo?.id : i.assignedTo
+      return aid === team.id && i.status !== 'Resolved' && i.status !== 'Rejected' && i.status !== 'Closed'
+    })
+    return hasActive ? 'On Duty' : team.status
   }
 
   const submitPasswordVerify = async () => {
@@ -304,6 +320,7 @@ export default function ResponseManagement() {
                   {teams.map(team => {
                     const members = getMemberUsers(team)
                     const open = expandedTeam === team.id
+                    const dynStatus = getTeamDynamicStatus(team)
                     return (
                       <div key={team.id} className={s.rosterCard}>
                         <div className={s.rosterCardTop}>
@@ -311,7 +328,7 @@ export default function ResponseManagement() {
                             <div className={s.teamName}>{team.name}</div>
                             <div className={s.teamSpec}>{team.specialty || 'General'}</div>
                           </div>
-                          <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
+                          <span className={`${s.teamStatus} ${dynStatus === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{dynStatus}</span>
                         </div>
                         <div className={s.memberCount}
                           onClick={() => setExpandedTeam(open ? null : team.id)}
@@ -429,6 +446,7 @@ export default function ResponseManagement() {
                       <tbody>
                         {teams.map(team => {
                           const members = getMemberUsers(team)
+                          const dynStatus = getTeamDynamicStatus(team)
                           return (
                             <tr key={team.id}>
                               <td style={{ fontWeight: 600 }}>{team.name}</td>
@@ -446,7 +464,7 @@ export default function ResponseManagement() {
                                   ))}
                                 </div>
                               </td>
-                              <td><span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span></td>
+                              <td><span className={`${s.teamStatus} ${dynStatus === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{dynStatus}</span></td>
                               <td>
                                 <div style={{ display: 'flex', gap: 4 }}>
                                   <button className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => { openEdit(team); setSubTab('manage') }} title="Edit"><Pencil size={12} /></button>
@@ -529,11 +547,13 @@ export default function ResponseManagement() {
                   {assigned.map(inc => {
                     const team = getTeamFromInc(inc)
                     const members = getMemberNames(team)
+                    const dynTeamStatus = team ? getTeamDynamicStatus(team) : null
+                    const statusBadge = { 'Open': 'badge-open', 'In Progress': 'badge-progress', 'Resolved': 'badge-resolved', 'Rejected': 'badge-rejected', 'Closed': 'badge-resolved' }
                     return (
                       <div key={inc.id} className={s.assignCard}>
                         <div className={s.assignCardHeader}>
                           <span className={s.assignTitle}>{inc.title}</span>
-                          <span className={`badge ${inc.status === 'In Progress' ? 'badge-progress' : 'badge-open'}`}>{inc.status}</span>
+                          <span className={`badge ${statusBadge[inc.status] || 'badge-open'}`}>{inc.status}</span>
                         </div>
                         <div className={s.assignMeta}>
                           <span><strong>Type:</strong> {inc.type}</span>
@@ -544,10 +564,11 @@ export default function ResponseManagement() {
                           <div className={s.teamChip}>
                             <Users size={13} />
                             <span>{team.name}</span>
-                            <span className={s.teamSpec}>· {team.specialty}</span>
-                            <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
+                            {team.specialty && <span className={s.teamSpec}>· {team.specialty}</span>}
+                            <span className={`${s.teamStatus} ${dynTeamStatus === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{dynTeamStatus}</span>
                           </div>
                         )}
+                        {!team && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>No team data available</div>}
                         {members.length > 0 && (
                           <div className={s.assignMeta} style={{ marginTop: 6 }}>
                             {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
@@ -594,6 +615,7 @@ export default function ResponseManagement() {
                         const team = getTeamFromInc(inc)
                         const members = getMemberNames(team)
                         const canResolve = inc.validated && inc.verified && inc.assignedTo
+                        const dynTeamStatus = team ? getTeamDynamicStatus(team) : null
                         return (
                           <div key={inc.id} className={s.assignCard}>
                             <div className={s.assignCardHeader}>
@@ -608,10 +630,11 @@ export default function ResponseManagement() {
                               <div className={s.teamChip}>
                                 <Users size={13} />
                                 <span>{team.name}</span>
-                                <span className={s.teamSpec}>· {team.specialty}</span>
-                                <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
+                                {team.specialty && <span className={s.teamSpec}>· {team.specialty}</span>}
+                                <span className={`${s.teamStatus} ${dynTeamStatus === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{dynTeamStatus}</span>
                               </div>
                             )}
+                            {!team && <div style={{ fontSize: 11, color: '#94a3b8' }}>Unassigned</div>}
                             {members.length > 0 && (
                               <div className={s.assignMeta} style={{ marginTop: 4 }}>
                                 {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
@@ -671,7 +694,7 @@ export default function ResponseManagement() {
                           <div key={inc.id} className={`${s.assignCard} ${s.assignCardResolved}`}>
                             <div className={s.assignCardHeader}>
                               <span className={s.assignTitle}>{inc.title}</span>
-                              <span className={`priority-${inc.priority.toLowerCase()}`}>{inc.priority}</span>
+                              <span className="badge badge-resolved">{inc.priority}</span>
                             </div>
                             <div className={s.assignMeta}>
                               <span><strong>Type:</strong> {inc.type}</span>
@@ -681,8 +704,8 @@ export default function ResponseManagement() {
                               <div className={s.teamChip}>
                                 <Users size={13} />
                                 <span>{team.name}</span>
-                                <span className={s.teamSpec}>· {team.specialty}</span>
-                                <span className={`${s.teamStatus} ${team.status === 'Available' ? s.tsAvail : s.tsOnDuty}`}>{team.status}</span>
+                                {team.specialty && <span className={s.teamSpec}>· {team.specialty}</span>}
+                                <span className={`${s.teamStatus} ${s.tsAvail}`}>Resolved</span>
                               </div>
                             )}
                             {members.length > 0 && (
@@ -695,10 +718,10 @@ export default function ResponseManagement() {
                                 className={s.resolvedStatusBtn}
                                 style={{ width: '100%', justifyContent: 'center' }}
                                 onClick={() => handleResolvedStatusChange(inc.id, 'Open')}
-                                title={canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
+                                title={isAdmin ? 'Admin: click to reopen instantly' : canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
                                 disabled={!canModifyResolved}
                               >
-                                <Lock size={11} /> Resolved — click to reopen
+                                <Lock size={11} /> {isAdmin ? 'Resolved — admin reopen' : 'Resolved — click to reopen'}
                               </button>
                             </div>
                           </div>
