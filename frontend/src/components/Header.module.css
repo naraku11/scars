@@ -323,3 +323,130 @@
 @media (max-width: 480px) {
   .date { display: none; }
 }
+
+/* ── Account button & dropdown ─────────────── */
+.accountContainer { position: relative; }
+
+.accountBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #C8E6C9;
+  background: #E8F5E9;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.accountBtn:hover    { border-color: #43A047; box-shadow: 0 0 0 3px rgba(46,125,50,0.12); }
+.accountBtnActive    { border-color: #2E7D32; box-shadow: 0 0 0 3px rgba(46,125,50,0.18); }
+
+.accountAvatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.accountInitials {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1B5E20;
+  user-select: none;
+}
+
+.accountDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 220px;
+  background: #fff;
+  border: 1px solid #C8E6C9;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(27,94,32,0.14);
+  z-index: 200;
+  overflow: hidden;
+  animation: dropdown-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.accountHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+}
+
+.accountAvatarLg {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #C8E6C9;
+  flex-shrink: 0;
+}
+
+.accountInitialsLg {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #E8F5E9;
+  border: 2px solid #C8E6C9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1B5E20;
+  flex-shrink: 0;
+}
+
+.accountInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.accountName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a2e1c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.accountRole {
+  font-size: 11px;
+  color: #4a7a52;
+  margin-top: 1px;
+}
+
+.accountDivider {
+  height: 1px;
+  background: #F1F8F2;
+  margin: 0;
+}
+
+.accountMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a2e1c;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+  min-height: unset;
+}
+.accountMenuItem:hover { background: #F1F8F2; color: #2E7D32; }
+
+.accountMenuItemDanger { color: #dc2626; }
+.accountMenuItemDanger:hover { background: #fef2f2; color: #b91c1c; }

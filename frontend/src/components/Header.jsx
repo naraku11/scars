@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Menu, X, CheckCircle, AlertTriangle, Info, Zap, ShieldCheck, ExternalLink } from 'lucide-react'
+import { Bell, Menu, X, CheckCircle, AlertTriangle, Info, Zap, ShieldCheck, ExternalLink, UserCircle, LogOut } from 'lucide-react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import s from './Header.module.css'
@@ -29,21 +29,26 @@ function timeAgo(dateStr) {
 }
 
 export default function Header({ title, subtitle }) {
-  const { notifications, incidentAlerts, currentUser, systemConfig } = useApp()
+  const { notifications, incidentAlerts, currentUser, systemConfig, logout } = useApp()
   const logoImage = systemConfig?.logoImage
   const ctx = useOutletContext()
   const navigate = useNavigate()
 
-  const [open, setOpen]       = useState(false)
+  const [open, setOpen]             = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const [readIds, setReadIds] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('scars_read_notifs') || '[]')) }
     catch { return new Set() }
   })
 
-  const wrapRef = useRef()
+  const wrapRef    = useRef()
+  const accountRef = useRef()
+
+  const roleName = typeof currentUser?.role === 'object' ? currentUser.role?.name : currentUser?.role
+
+  const handleLogout = () => { logout(); navigate('/') }
 
   // Map role name → target label used in notifications
-  const roleName = typeof currentUser?.role === 'object' ? currentUser.role?.name : currentUser?.role
   const TARGET_MAP = { Admin: 'Admin', Officer: 'Officers', Responder: 'Responders', Student: 'Students' }
   const myTarget   = TARGET_MAP[roleName] ?? ''
 
@@ -69,13 +74,21 @@ export default function Header({ title, subtitle }) {
     })
   }
 
-  // Close on outside click
+  // Close on outside click — notifications
   useEffect(() => {
     if (!open) return
     const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
+
+  // Close on outside click — account menu
+  useEffect(() => {
+    if (!accountOpen) return
+    const handler = (e) => { if (accountRef.current && !accountRef.current.contains(e.target)) setAccountOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [accountOpen])
 
   // New notification arrives while panel is closed → re-add to unread
   useEffect(() => {
@@ -193,6 +206,52 @@ export default function Header({ title, subtitle }) {
         <span className={s.date}>
           {new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
         </span>
+
+        {/* Account button */}
+        <div ref={accountRef} className={s.accountContainer}>
+          <button
+            className={`${s.accountBtn} ${accountOpen ? s.accountBtnActive : ''}`}
+            onClick={() => setAccountOpen(v => !v)}
+            aria-label="Account menu"
+          >
+            {currentUser?.profileImage
+              ? <img src={currentUser.profileImage} alt="avatar" className={s.accountAvatar} />
+              : <div className={s.accountInitials}>
+                  {(currentUser?.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                </div>
+            }
+          </button>
+
+          {accountOpen && (
+            <div className={s.accountDropdown}>
+              <div className={s.accountHeader}>
+                {currentUser?.profileImage
+                  ? <img src={currentUser.profileImage} alt="avatar" className={s.accountAvatarLg} />
+                  : <div className={s.accountInitialsLg}>
+                      {(currentUser?.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                }
+                <div className={s.accountInfo}>
+                  <span className={s.accountName}>{currentUser?.name}</span>
+                  <span className={s.accountRole}>{roleName}</span>
+                </div>
+              </div>
+              <div className={s.accountDivider} />
+              <button
+                className={s.accountMenuItem}
+                onClick={() => { setAccountOpen(false); navigate('/profile') }}
+              >
+                <UserCircle size={15} /> My Profile
+              </button>
+              <button
+                className={`${s.accountMenuItem} ${s.accountMenuItemDanger}`}
+                onClick={handleLogout}
+              >
+                <LogOut size={15} /> Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )
