@@ -193,3 +193,116 @@
   transition: background 0.15s, color 0.15s;
 }
 .emergencyNum:hover { background: #C8E6C9; color: #1B5E20; }
+
+/* ── Responder Dashboard ───────────────────────── */
+
+/* Tab count badges */
+.tabBadge {
+  background: #2E7D32;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 99px;
+  line-height: 1.5;
+}
+.tabBadgeUrgent {
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 99px;
+  line-height: 1.5;
+}
+.tabBadgeGray {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 99px;
+  line-height: 1.5;
+}
+
+/* Incident card grid — responsive columns */
+.incCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .incCardGrid { grid-template-columns: 1fr; }
+}
+
+/* Incident card */
+.incCard {
+  background: #fff;
+  border: 1px solid #e2ede3;
+  border-left: 4px solid #2E7D32;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: box-shadow 0.15s, transform 0.12s;
+}
+.incCard:hover {
+  box-shadow: 0 4px 16px rgba(27,94,32,0.10);
+  transform: translateY(-1px);
+}
+
+.incCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.incCardTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a2e1c;
+  line-height: 1.4;
+  flex: 1;
+}
+.incCardMeta {
+  font-size: 11px;
+  color: #4a7a52;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.incCardBadges {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.incCardFooter {
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* Search row in All Reports tab */
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0f7f0;
+  margin-bottom: 16px;
+}
+
+/* Team tab layout — team info left, alerts right */
+.teamTabGrid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .teamTabGrid { grid-template-columns: 1fr; }
+}
