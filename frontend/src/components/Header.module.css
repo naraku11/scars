@@ -168,7 +168,7 @@
   outline-offset: -2px;
 }
 
-/* Dismiss button — visible on item hover */
+/* Dismiss button — always visible, subtle until hovered */
 .notifDismiss {
   background: none;
   border: none;
@@ -182,11 +182,9 @@
   flex-shrink: 0;
   align-self: flex-start;
   margin-top: 1px;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s;
   min-height: unset;
 }
-.notifItem:hover .notifDismiss { opacity: 1; }
 .notifDismiss:hover { color: #dc2626; background: #fee2e2; }
 
 .notifIncidentTag {
