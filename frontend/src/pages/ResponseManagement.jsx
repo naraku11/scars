@@ -159,6 +159,10 @@ export default function ResponseManagement() {
 
   const handleSetEta = async (incId, etaISO) => {
     setError('')
+    if (new Date(etaISO) <= new Date()) {
+      setError('ETA must be a future date and time.')
+      return
+    }
     try {
       await updateIncident(incId, { eta: etaISO })
       setEtaEditId(null)
@@ -703,6 +707,7 @@ export default function ResponseManagement() {
                                     <input
                                       type="datetime-local"
                                       value={etaCustom}
+                                      min={(() => { const d = new Date(); const pad = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}` })()}
                                       onChange={e => setEtaCustom(e.target.value)}
                                       className={s.etaInput}
                                     />

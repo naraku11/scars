@@ -141,21 +141,26 @@ export default function ResponderDashboard() {
     t.members?.some(m => (typeof m === 'object' ? (m.userId ?? m.user?.id ?? m.id) : m) === userId)
   )
 
-  const myIncidents = (myTeam
+  // All incidents ever assigned to my team (stats + All Reports tab)
+  const allTeamIncidents = myTeam
     ? incidents.filter(i => {
         const aId = typeof i.assignedTo === 'object' ? i.assignedTo?.id : i.assignedTo
         return aId === myTeam.id
       })
     : []
-  ).sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9))
 
-  const open        = myIncidents.filter(i => i.status === 'Open').length
-  const inProgress  = myIncidents.filter(i => i.status === 'In Progress').length
-  const resolved    = myIncidents.filter(i => i.status === 'Resolved').length
+  // My Incidents tab: active only (needs attention), sorted by priority
+  const myIncidents = allTeamIncidents
+    .filter(i => i.status !== 'Resolved' && i.status !== 'Rejected')
+    .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9))
+
+  const open        = allTeamIncidents.filter(i => i.status === 'Open').length
+  const inProgress  = allTeamIncidents.filter(i => i.status === 'In Progress').length
+  const resolved    = allTeamIncidents.filter(i => i.status === 'Resolved').length
   const urgentCount = open + inProgress
 
-  // All Reports: only incidents assigned to the responder's team, newest first
-  const teamReports = [...myIncidents].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  // All Reports tab: full history, sorted newest first
+  const teamReports = [...allTeamIncidents].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   const filteredReports = search.trim()
     ? teamReports.filter(i =>
         [i.title, i.location, i.type,
@@ -236,9 +241,7 @@ export default function ResponderDashboard() {
             <Inbox size={14} />
             My Incidents
             {myIncidents.length > 0 && (
-              <span className={urgentCount > 0 ? s.tabBadgeUrgent : s.tabBadge}>
-                {urgentCount > 0 ? urgentCount : myIncidents.length}
-              </span>
+              <span className={s.tabBadgeUrgent}>{myIncidents.length}</span>
             )}
           </button>
           <button
@@ -248,7 +251,7 @@ export default function ResponderDashboard() {
           >
             <FileText size={14} />
             All Reports
-            <span className={s.tabBadgeGray}>{incidents.length}</span>
+            <span className={s.tabBadgeGray}>{teamReports.length}</span>
           </button>
           <button
             className={`${p.tab} ${tab === 'team' ? p.activeTab : ''}`}
