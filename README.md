@@ -48,25 +48,52 @@ Campus safety and incident management platform — real-time reporting, response
 - Team dropdown shows **dynamic status** (On Duty / Available) and specialty per team
 - Active, Resolved, and Deleted sub-tabs with separate views
 - Status flow: `Open → In Progress → Resolved` · `Rejected` for invalid reports
-- Admin password override to reopen Resolved incidents (non-Admin roles see a locked state)
+- **Responders can mark incidents as Resolved** from their dashboard — requires the incident to be both validated and verified; shows an "Awaiting validation" lock label otherwise
+- **Admin password required to reopen Resolved incidents** — Admin must enter their password for confirmation; all other roles see a disabled "Admin only — locked" button
+
+### ETA (Estimated Time of Arrival)
+
+- Admin sets ETA on assigned or active incidents from Response Management
+- **Quick presets** — ASAP (2 min), 5 min, 10 min, 15 min, 30 min, 1 hr; or a custom `datetime-local` picker
+- **Past dates blocked** — the datetime picker enforces a `min` of the current time; `handleSetEta` rejects any value ≤ now
+- **Color-coded countdown** — green (> 10 min), amber (≤ 10 min), red (overdue)
+- ETA is displayed on Responder Dashboard incident cards with an overdue `!` indicator
+- ETA can be edited or cleared at any time; stored as `DATETIME NULL` in the `Incident` table
 
 ### Response Management
 
 - **Personnel tab** — all Officers and Responders with team assignments and dynamic team status
 - **Teams tab** — roster view (expandable member list); create/edit/delete teams with member picker; team status **dynamically shows "On Duty"** when the team has active assigned incidents
-- **Assignments tab** — unassigned incidents show validation/verification badges and color-coded assign buttons (green = available); assigned incidents show team info and a **Reassign Team** button
-- **Status Tracking tab** — active incidents with live status select; resolved incidents locked behind password confirmation; **Admin bypasses password check**
-- Auto-assign uses dynamic team status for available-team detection
+- **Assignments tab** — unassigned incidents show validation/verification badges and color-coded assign buttons (green = available); assigned incidents show team info, a **Reassign Team** button, and an **ETA setter** with quick presets and custom datetime
+- **Status Tracking tab**
+  - Active incidents: live status select, ETA display/edit, team info
+  - Resolved incidents: locked; **Admin must enter their password to reopen** — no bypass; non-Admin roles see a disabled "Admin only — locked" button
 
 ### Notification System
 
-- **Web Push only** — send in-app push notifications to targeted roles
-- Target audience: All, Responders, Officers, Students (Admin excluded from targets)
-- Notification history with sent timestamp and target group
-- Bell panel (header) — role-filtered, unread badge with ring animation, all items clickable
-  - Incident alerts (non-Students): new incident → in-app bell alert with "View Incident" link
-  - Response alerts: Responders notified when their team is assigned; Admin/Officer notified on status changes
-  - DB notifications filtered by role target
+- **In-app Web Push** — send alerts to targeted roles with 4 urgency types
+- **Urgency types** — Emergency (red/Zap), Alert (amber/AlertTriangle), Warning (yellow/AlertTriangle), Info (blue/Info) — each with type-specific icon and color
+- **Target audience** — All, Admin, Responders, Officers, Students
+- **Character limits** — Title: 60 chars, Message: 280 chars with live counters (turns red at limit)
+- **Live bell preview** — compose panel shows a real-time preview of how the notification will appear in the header bell
+- **Notification history** — type-specific icon and color per entry, sent timestamp, target group
+- **Admin-only delete controls**:
+  - Individual trash icon on each history item
+  - Checkbox selection per item with a Select All toggle in the header
+  - "Delete (N)" button appears when any items are selected
+  - "All" button deletes every notification at once
+  - Bulk delete uses a single `DELETE /api/notifications` call (body: `{ ids: [...] }`)
+- **Duplicate prevention** — `sendNotification` no longer calls `setNotifications` directly; the socket `notification:sent` event is the single source of truth (prevents double-entry when target is "All")
+
+### Notification Bell (Header)
+
+- Role-filtered notifications — DB notifications shown only if `target` matches the user's role or is "All"
+- Unread badge with ring animation; **dismiss button always visible** (not hover-only) for touch compatibility
+- **Clear All** button removes all visible notifications at once
+- Incident alerts (non-Students): new incident → in-app bell alert with "View Incident" link
+- Response alerts: Responders notified on team assignment; Admin/Officer notified on status changes
+- `sessionStorage` persistence for incident alerts — survives page refresh; cleared on login/logout to prevent cross-user leakage
+- `localStorage` dismissed/read ID persistence with **stale ID pruning** — IDs for deleted notifications are removed automatically
 - **Sound alerts** (Web Audio API) — plays on new incidents for Officers/Admins/Responders:
   - Critical = urgent triple beep (880 → 1100 Hz, square wave)
   - High = double beep (660 Hz, sawtooth)
@@ -76,7 +103,11 @@ Campus safety and incident management platform — real-time reporting, response
 
 - **Admin** — system overview, incident stats, status breakdown, quick actions
 - **Officer** — active incidents with reporter name, timestamp, team assignment; Validate/Approve/Reject actions; sound alert on new incident
-- **Responder** — team-assigned incidents (read-only, no status editing); All Recent Reports section; sound alert on team assignment
+- **Responder** — mobile-first, tab-based dashboard:
+  - **My Incidents** — active (Open + In Progress) incidents assigned to the responder's team, sorted by priority; badge shows active count; "Mark as Resolved" action when validated + verified; ETA badge with countdown per card
+  - **All Reports** — full history (all statuses) of incidents assigned to the team, sorted newest first; badge shows total team incident count
+  - **My Team** — team details, member list, and recent notifications
+  - Stats row: Assigned / Open / In Progress / Resolved counts (from all team incidents)
 - **Student** — report incident; track submitted reports with timestamps; Campus Alerts show title and message only
 
 ### Reporting & Analytics
@@ -91,9 +122,12 @@ Campus safety and incident management platform — real-time reporting, response
 
 - Permissions stored per role: `incidents`, `response`, `notifications`, `reports`, `admin`
 - **Sidebar navigation is fully dynamic** — built from live role permissions; changes take effect immediately for online users (no re-login required)
-- **Route guards** — navigating to a route without the required permission redirects to the role's home dashboard
+- **Route guards** — two layers:
+  1. Permission guard — navigating to a route without the required permission redirects to the role's home dashboard
+  2. Role-only guard — dashboard routes (`/dashboard`, `/officer`, `/responder`, `/student`) redirect if the role doesn't match exactly
 - Live preview in System Administration — toggling a permission checkbox instantly shows which pages that role can access (before saving)
 - Admin role is protected and cannot be edited
+- **Responder permissions** — idempotent startup migration resets Responder to dashboard-only (`response: false`, `notifications: false`, `reports: false`) if an old seed had `response: true`
 
 ### FAQ & Help
 
@@ -112,7 +146,7 @@ Campus safety and incident management platform — real-time reporting, response
 - gzip compression on all API responses (~70% payload reduction)
 - Request deduplication — concurrent identical GET requests share a single network call
 - Schema migrations applied automatically at server startup (idempotent `ALTER TABLE IF NOT EXISTS`)
-- Mobile-responsive with touch-friendly tap targets
+- Mobile-responsive with touch-friendly tap targets and overflow-safe CSS grid (`minmax(min(280px, 100%), 1fr)`)
 
 ---
 
@@ -120,9 +154,9 @@ Campus safety and incident management platform — real-time reporting, response
 
 | Role | Level | Dashboard | Incidents | Response | Notifications | Reports | Admin |
 |---|---|---|---|---|---|---|---|
-| Admin | 1 | `/dashboard` | Full + delete lock | Full + bypass password | Full | Full | Full |
+| Admin | 1 | `/dashboard` | Full + delete lock | Full + ETA + admin-password reopen | Full + delete history | Full | Full |
 | Officer | 2 | `/officer` | Validate/Approve/Assign + sound | View/Assign | Sound alerts | View | — |
-| Responder | 3 | `/responder` | View only (read-only) | View + sound alerts | Receive | — | — |
+| Responder | 3 | `/responder` | My Incidents / All Reports / My Team | View + Resolve own team incidents | — | — | — |
 | Student | 4 | `/student` | Report only | — | — | — | — |
 
 Login automatically redirects each role to their dashboard. Sidebar items and route access are dynamically controlled by the role's permission settings.
@@ -259,7 +293,7 @@ npm run db:studio    # open Prisma Studio visual browser
 npm run db:reset     # drop all data and re-apply schema + seed
 ```
 
-> **Schema migrations** (e.g. adding the `deletedAt` column) are applied automatically each time the server starts via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`. No manual migration step required after deployment.
+> **Schema migrations** are applied automatically each time the server starts via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`. Columns added this way: `deletedAt DATETIME`, `eta DATETIME`. No manual migration step required after deployment.
 
 ### phpMyAdmin Import (Hostinger)
 
@@ -325,7 +359,7 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 | GET | `/api/incidents` | List active incidents (excludes soft-deleted) |
 | GET | `/api/incidents/deleted` | List soft-deleted incidents |
 | POST | `/api/incidents` | Create incident |
-| PUT | `/api/incidents/:id` | Update incident fields |
+| PUT | `/api/incidents/:id` | Update incident fields (including `eta`) |
 | DELETE | `/api/incidents/:id` | Soft-delete (sets `deletedAt`; restorable) |
 | PATCH | `/api/incidents/:id/restore` | Restore a soft-deleted incident |
 | PATCH | `/api/incidents/:id/validate` | Mark as validated |
@@ -346,8 +380,9 @@ All endpoints except `/api/auth/login` require `Authorization: Bearer <token>`.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/notifications` | List all notifications |
-| POST | `/api/notifications` | Send Web Push notification |
-| DELETE | `/api/notifications/:id` | Delete notification |
+| POST | `/api/notifications` | Send notification (type, title, message, target, sentById) |
+| DELETE | `/api/notifications/:id` | Delete single notification |
+| DELETE | `/api/notifications` | Bulk delete — body: `{ ids: [1, 2, …] }` |
 
 ### Roles
 
@@ -385,11 +420,12 @@ Socket.io broadcasts after every mutation. `AppContext` patches client state ins
 | Event | Trigger |
 |---|---|
 | `incident:created` | New incident reported |
-| `incident:updated` | Incident fields, status, assignment, or validation changed |
+| `incident:updated` | Incident fields, status, assignment, ETA, or validation changed |
 | `incident:deleted` | Incident soft-deleted — payload includes `{ id, incident }` |
 | `incident:restored` | Soft-deleted incident restored — payload is the full incident |
 | `user:created` / `user:updated` / `user:deleted` | Any user change |
-| `notification:sent` / `notification:deleted` | Notification created or removed |
+| `notification:sent` | Notification created — single source of truth for state updates |
+| `notification:deleted` | Single notification removed — payload `{ id }` |
 | `team:updated` / `team:deleted` | Team change |
 | `role:updated` / `role:deleted` | Role change — sidebar navigation updates live for affected users |
 
@@ -402,20 +438,20 @@ Access is controlled by the role's **permission settings** (configurable in Syst
 | Page | Route | Default Access |
 |---|---|---|
 | Login | `/` | Public |
-| Admin Dashboard | `/dashboard` | Admin |
-| Officer Dashboard | `/officer` | Officer |
-| Responder Dashboard | `/responder` | Responder |
-| Student Dashboard | `/student` | Student |
+| Admin Dashboard | `/dashboard` | Admin only |
+| Officer Dashboard | `/officer` | Officer only |
+| Responder Dashboard | `/responder` | Responder only |
+| Student Dashboard | `/student` | Student only |
 | Profile | `/profile` | All roles |
 | FAQ & Help | `/faq` | All roles |
 | User Management | `/users` | Admin (`admin` permission) |
 | Incident Management | `/incidents` | Admin, Officer, Responder, Student (`incidents` permission) |
-| Response Management | `/response` | Admin, Officer, Responder (`response` permission) |
-| Notification System | `/notifications` | Admin, Responder (`notifications` permission) |
+| Response Management | `/response` | Admin, Officer (`response` permission) |
+| Notification System | `/notifications` | Admin (`notifications` permission) |
 | Reporting & Analytics | `/reports` | Admin, Officer (`reports` permission) |
 | System Administration | `/admin` | Admin (`admin` permission) |
 
-Navigating directly to a route without the required permission redirects to the role's home dashboard.
+Navigating directly to a route without the required permission redirects to the role's home dashboard. Dashboard routes additionally enforce a role-exact match (e.g. an Officer navigating to `/dashboard` is redirected to `/officer`).
 
 ---
 
@@ -456,8 +492,9 @@ Target: **< 40 OS threads/processes**. Estimated actual usage: **~8–12 threads
 |---|---|
 | **Request deduplication** | Concurrent identical GET requests share one `fetch()` promise |
 | **Memoized analytics** | All chart aggregations in `useMemo` — single pass over incidents array |
-| **Socket-only state updates** | Mutations do not update state directly; socket event is the single source of truth |
+| **Socket-only state updates** | Mutations do not update state directly; socket event is the single source of truth (prevents race-condition duplicates) |
 | **Live permission sync** | Sidebar reads from live `roles` state — permission changes propagate without re-login |
+| **Overflow-safe grids** | CSS `minmax(min(280px, 100%), 1fr)` prevents horizontal overflow on narrow screens |
 
 ### Database Indexes
 
