@@ -318,6 +318,11 @@ export function AppProvider({ children }) {
     await notificationsApi.delete(id)
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
+  const deleteNotifications = async (ids) => {
+    await notificationsApi.deleteMany(ids)
+    const idSet = new Set(ids.map(Number))
+    setNotifications(prev => prev.filter(n => !idSet.has(n.id)))
+  }
 
   // ── Users ────────────────────────────────────────────────────────────
   const addUser = async (data) => {
@@ -400,7 +405,7 @@ export function AppProvider({ children }) {
       addUser, updateUser, deleteUser,
       addRole, updateRole, deleteRole,
       addTeam, updateTeam, deleteTeam,
-      sendNotification, deleteNotification,
+      sendNotification, deleteNotification, deleteNotifications,
       triggerBackup, saveBackupConfig, saveSystemConfig,
       reload: loadAll,
     }}>

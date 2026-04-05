@@ -141,6 +141,58 @@
   color: #94a3b8;
 }
 
+/* ── Admin history controls ──────────────────────── */
+.selectAllBtn {
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; padding: 2px;
+  border-radius: 4px; color: #94a3b8; min-height: unset;
+  transition: color 0.15s;
+}
+.selectAllBtn:hover { color: #2E7D32; }
+
+.deleteAllBtn {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer;
+  font-size: 11px; font-weight: 600; color: #94a3b8;
+  padding: 3px 8px; border-radius: 5px; min-height: unset;
+  transition: color 0.15s, background 0.15s;
+}
+.deleteAllBtn:hover:not(:disabled) { color: #dc2626; background: #fee2e2; }
+.deleteAllBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.deleteSelBtn {
+  display: flex; align-items: center; gap: 4px;
+  background: #fee2e2; border: none; cursor: pointer;
+  font-size: 11px; font-weight: 700; color: #dc2626;
+  padding: 3px 8px; border-radius: 5px; min-height: unset;
+  transition: background 0.15s;
+}
+.deleteSelBtn:hover:not(:disabled) { background: #fecaca; }
+.deleteSelBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.histCheckbox {
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; align-self: center;
+  padding: 2px; border-radius: 4px; color: #cbd5e1; min-height: unset;
+  transition: color 0.15s;
+}
+.histCheckbox:hover { color: #2E7D32; }
+
+.histItemSelected {
+  background: #F6FFF7;
+  border-color: #86efac !important;
+}
+
+.histDeleteBtn {
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: 4px; border-radius: 4px; color: #cbd5e1;
+  flex-shrink: 0; min-height: unset;
+  transition: color 0.15s, background 0.15s;
+}
+.histDeleteBtn:hover { color: #dc2626; background: #fee2e2; }
+
 /* ── History list ────────────────────────────────── */
 .histList {
   display: flex;

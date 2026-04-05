@@ -44,7 +44,7 @@ const get  = (path)        => request('GET',    path)
 const post = (path, body)  => request('POST',   path, body)
 const put  = (path, body)  => request('PUT',    path, body)
 const patch = (path, body) => request('PATCH',  path, body)
-const del  = (path)        => request('DELETE', path)
+const del  = (path, body)  => request('DELETE', path, body)
 
 // Auth
 export const authApi = {
@@ -97,7 +97,8 @@ export const incidentsApi = {
 export const notificationsApi = {
   list:   ()          => get('/notifications'),
   send:   (data)      => post('/notifications', data),
-  delete: (id)        => del(`/notifications/${id}`),
+  delete:     (id)    => del(`/notifications/${id}`),
+  deleteMany: (ids)   => del('/notifications', { ids }),
 }
 
 // Profile

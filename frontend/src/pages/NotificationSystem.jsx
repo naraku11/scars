@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Send, Bell, Clock, CheckCircle, XCircle, Zap, AlertTriangle, Info } from 'lucide-react'
+import { Send, Bell, Clock, CheckCircle, XCircle, Zap, AlertTriangle, Info, Trash2, Square, CheckSquare } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import Header from '../components/Header'
 import p from '../components/Page.module.css'
@@ -46,11 +46,17 @@ function BellPreview({ form }) {
 }
 
 export default function NotificationSystem() {
-  const { notifications, sendNotification } = useApp()
+  const { notifications, sendNotification, deleteNotification, deleteNotifications, currentUser } = useApp()
   const [form, setForm] = useState(initForm)
   const [sent, setSent]   = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy]   = useState(false)
+
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [deleting, setDeleting]       = useState(false)
+
+  const roleName = typeof currentUser?.role === 'object' ? currentUser.role?.name : currentUser?.role
+  const isAdmin  = roleName === 'Admin'
 
   const fc = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 
@@ -71,6 +77,43 @@ export default function NotificationSystem() {
 
   const titleLeft = TITLE_MAX - form.title.length
   const msgLeft   = MSG_MAX   - form.message.length
+
+  // ── Selection helpers ────────────────────────────────────────────────
+  const displayedNotifs = notifications.slice(0, 20)
+  const allSelected = displayedNotifs.length > 0 && displayedNotifs.every(n => selectedIds.has(n.id))
+
+  const toggleSelect = (id) =>
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+
+  const toggleSelectAll = () =>
+    setSelectedIds(allSelected ? new Set() : new Set(displayedNotifs.map(n => n.id)))
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0 || deleting) return
+    setDeleting(true)
+    try {
+      await deleteNotifications([...selectedIds])
+      setSelectedIds(new Set())
+    } finally { setDeleting(false) }
+  }
+
+  const handleDeleteAll = async () => {
+    if (notifications.length === 0 || deleting) return
+    setDeleting(true)
+    try {
+      await deleteNotifications(notifications.map(n => n.id))
+      setSelectedIds(new Set())
+    } finally { setDeleting(false) }
+  }
+
+  const handleDeleteOne = async (id) => {
+    await deleteNotification(id)
+    setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next })
+  }
 
   return (
     <div className={p.page}>
@@ -190,20 +233,76 @@ export default function NotificationSystem() {
           {/* ── History panel ── */}
           <div className={`${p.card} ${s.histCard}`}>
             <div className={p.sectionHeader}>
-              <span className={p.sectionTitle}>History</span>
-              <span style={{ fontSize: 11, color: '#4a7a52', background: '#F1F8F2', padding: '2px 8px', borderRadius: 99 }}>
-                {notifications.length}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Select-all checkbox — admin only */}
+                {isAdmin && notifications.length > 0 && (
+                  <button
+                    className={s.selectAllBtn}
+                    onClick={toggleSelectAll}
+                    title={allSelected ? 'Deselect all' : 'Select all'}
+                  >
+                    {allSelected
+                      ? <CheckSquare size={15} color="#2E7D32" />
+                      : <Square size={15} />}
+                  </button>
+                )}
+                <span className={p.sectionTitle}>History</span>
+                <span style={{ fontSize: 11, color: '#4a7a52', background: '#F1F8F2', padding: '2px 8px', borderRadius: 99 }}>
+                  {notifications.length}
+                </span>
+              </div>
+
+              {/* Admin bulk-delete controls */}
+              {isAdmin && notifications.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {selectedIds.size > 0 && (
+                    <button
+                      className={s.deleteSelBtn}
+                      onClick={handleDeleteSelected}
+                      disabled={deleting}
+                    >
+                      <Trash2 size={11} />
+                      {deleting ? 'Deleting…' : `Delete (${selectedIds.size})`}
+                    </button>
+                  )}
+                  <button
+                    className={s.deleteAllBtn}
+                    onClick={handleDeleteAll}
+                    disabled={deleting}
+                    title="Delete all notifications"
+                  >
+                    <Trash2 size={11} /> All
+                  </button>
+                </div>
+              )}
             </div>
+
             {notifications.length === 0
               ? <div className={p.empty}><Bell size={28} color="#C8E6C9" />No notifications sent yet.</div>
               : (
                 <div className={s.histList}>
-                  {notifications.slice(0, 20).map(n => {
+                  {displayedNotifs.map(n => {
                     const m = TYPE_META[n.type] ?? { color: '#4a7a52', bg: '#F1F8F2', icon: Bell }
                     const HIcon = m.icon ?? Bell
+                    const checked = selectedIds.has(n.id)
                     return (
-                      <div key={n.id} className={s.histItem}>
+                      <div
+                        key={n.id}
+                        className={`${s.histItem} ${checked ? s.histItemSelected : ''}`}
+                      >
+                        {/* Checkbox — admin only */}
+                        {isAdmin && (
+                          <button
+                            className={s.histCheckbox}
+                            onClick={() => toggleSelect(n.id)}
+                            title={checked ? 'Deselect' : 'Select'}
+                          >
+                            {checked
+                              ? <CheckSquare size={15} color="#2E7D32" />
+                              : <Square size={15} />}
+                          </button>
+                        )}
+
                         <div className={s.histIcon} style={{ background: m.bg, color: m.color }}>
                           <HIcon size={14} />
                         </div>
@@ -221,9 +320,20 @@ export default function NotificationSystem() {
                             </span>
                           </div>
                         </div>
-                        <span className="badge badge-resolved" style={{ alignSelf: 'flex-start', flexShrink: 0 }}>
-                          Sent
-                        </span>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                          <span className="badge badge-resolved">Sent</span>
+                          {/* Delete button — admin only */}
+                          {isAdmin && (
+                            <button
+                              className={s.histDeleteBtn}
+                              onClick={() => handleDeleteOne(n.id)}
+                              title="Delete notification"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )
                   })}

@@ -51,6 +51,18 @@ router.post('/', async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }) }
 })
 
+router.delete('/', async (req, res) => {
+  try {
+    const ids = req.body?.ids
+    if (!Array.isArray(ids) || ids.length === 0) return res.json({ ok: true })
+    const placeholders = ids.map(() => '?').join(',')
+    await pool.execute(`DELETE FROM Notification WHERE id IN (${placeholders})`, ids.map(Number))
+    cacheDel('notifications')
+    ids.forEach(id => emit('notification:deleted', { id }))
+    res.json({ ok: true })
+  } catch (e) { res.status(400).json({ error: e.message }) }
+})
+
 router.delete('/:id', async (req, res) => {
   try {
     const id = +req.params.id
