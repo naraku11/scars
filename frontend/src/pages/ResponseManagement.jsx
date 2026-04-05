@@ -186,14 +186,8 @@ export default function ResponseManagement() {
   const canModifyResolved = currentUser && userRoleName !== 'Student'
 
   const handleResolvedStatusChange = (incId, newStatus) => {
-    if (!canModifyResolved) {
-      setError('Students cannot modify resolved incidents.')
-      return
-    }
-    // Admin bypasses password check entirely
-    if (isAdmin) {
-      handleStatus(incId, newStatus)
-      setSuccess('Status updated.')
+    if (!isAdmin) {
+      setError('Only Admin can reopen resolved incidents.')
       return
     }
     setPwInput('')
@@ -759,7 +753,7 @@ export default function ResponseManagement() {
                     Resolved Incidents ({incidents.filter(i => i.status === 'Resolved').length})
                   </span>
                   <span className={s.resolvedNote}>
-                    <Lock size={11} /> Password required to reopen
+                    <Lock size={11} /> Admin password required to reopen
                   </span>
                 </div>
                 {incidents.filter(i => i.status === 'Resolved').length === 0
@@ -797,10 +791,10 @@ export default function ResponseManagement() {
                                 className={s.resolvedStatusBtn}
                                 style={{ width: '100%', justifyContent: 'center' }}
                                 onClick={() => handleResolvedStatusChange(inc.id, 'Open')}
-                                title={isAdmin ? 'Admin: click to reopen instantly' : canModifyResolved ? 'Click to reopen (password required)' : 'Students cannot modify resolved incidents'}
-                                disabled={!canModifyResolved}
+                                title={isAdmin ? 'Admin password required to reopen' : 'Only admin can reopen resolved incidents'}
+                                disabled={!isAdmin}
                               >
-                                <Lock size={11} /> {isAdmin ? 'Resolved — admin reopen' : 'Resolved — click to reopen'}
+                                <Lock size={11} /> {isAdmin ? 'Reopen Incident' : 'Admin only — locked'}
                               </button>
                             </div>
                           </div>
@@ -820,11 +814,10 @@ export default function ResponseManagement() {
             <div className={s.pwModal} onClick={e => e.stopPropagation()}>
               <div className={s.pwModalHeader}>
                 <Lock size={18} />
-                <span>Verify Identity</span>
+                <span>Admin Verification</span>
               </div>
               <p className={s.pwModalDesc}>
-                You are about to change a <strong>Resolved</strong> incident's status.<br />
-                Enter your password to confirm.
+                Enter your <strong>admin password</strong> to reopen this resolved incident.
               </p>
               <div className={p.field}>
                 <label>Password</label>
