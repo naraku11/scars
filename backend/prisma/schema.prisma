@@ -71,6 +71,7 @@ model Incident {
   validated   Boolean  @default(false)
   verified    Boolean  @default(false)
   media       Json     @default("[]")
+  eta         DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

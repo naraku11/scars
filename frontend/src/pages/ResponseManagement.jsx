@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Zap, Users, CheckCircle, XCircle, Plus, Pencil, Trash2, Shield, UserCheck, ChevronDown, ChevronUp, Lock, RefreshCw } from 'lucide-react'
+import { Zap, Users, CheckCircle, XCircle, Plus, Pencil, Trash2, Shield, UserCheck, ChevronDown, ChevronUp, Lock, RefreshCw, Clock, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { authApi } from '../services/api'
 import Header from '../components/Header'
@@ -7,6 +7,30 @@ import p from '../components/Page.module.css'
 import s from './ResponseManagement.module.css'
 
 const STATUSES = ['Open', 'In Progress', 'Resolved']
+
+const ETA_PRESETS = [
+  { label: 'ASAP',   mins: 2  },
+  { label: '5 min',  mins: 5  },
+  { label: '10 min', mins: 10 },
+  { label: '15 min', mins: 15 },
+  { label: '30 min', mins: 30 },
+  { label: '1 hr',   mins: 60 },
+]
+
+function formatEta(eta) {
+  if (!eta) return null
+  const diff = new Date(eta) - Date.now()
+  const mins = Math.round(diff / 60000)
+  if (mins > 60) {
+    const h = Math.floor(mins / 60), m = mins % 60
+    return { label: m > 0 ? `in ${h}h ${m}m` : `in ${h}h`, color: '#16a34a', overdue: false }
+  }
+  if (mins > 0)  return { label: `in ${mins} min`, color: mins <= 10 ? '#d97706' : '#16a34a', overdue: false }
+  if (mins === 0) return { label: 'arriving now',  color: '#16a34a', overdue: false }
+  const over = Math.abs(mins)
+  if (over >= 60) return { label: `overdue ${Math.floor(over / 60)}h`, color: '#dc2626', overdue: true }
+  return { label: `overdue ${over} min`, color: '#dc2626', overdue: true }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const roleName  = (u) => typeof u?.role === 'object' ? u?.role?.name ?? '' : (u?.role ?? '')
@@ -29,7 +53,7 @@ function Avatar({ user, size = 32 }) {
 }
 
 export default function ResponseManagement() {
-  const { incidents, teams, users, currentUser, assignIncident, updateStatus, addTeam, updateTeam, deleteTeam } = useApp()
+  const { incidents, teams, users, currentUser, assignIncident, updateIncident, updateStatus, addTeam, updateTeam, deleteTeam } = useApp()
 
   const [tab, setTab]         = useState('personnel')
   const [subTab, setSubTab]   = useState('list')
@@ -51,6 +75,10 @@ export default function ResponseManagement() {
 
   // Reassign state
   const [reassignId, setReassignId]   = useState(null)  // incidentId being reassigned
+
+  // ETA state
+  const [etaEditId, setEtaEditId]     = useState(null)  // incidentId with open ETA editor
+  const [etaCustom, setEtaCustom]     = useState('')
 
   // Auto-dismiss success
   useEffect(() => {
@@ -127,6 +155,36 @@ export default function ResponseManagement() {
   const handleStatus = async (id, status) => {
     setError('')
     try { await updateStatus(id, status) } catch (err) { setError(err.message) }
+  }
+
+  const handleSetEta = async (incId, etaISO) => {
+    setError('')
+    try {
+      await updateIncident(incId, { eta: etaISO })
+      setEtaEditId(null)
+      setEtaCustom('')
+      setSuccess('ETA set.')
+    } catch (err) { setError(err.message) }
+  }
+
+  const handleClearEta = async (incId) => {
+    setError('')
+    try {
+      await updateIncident(incId, { eta: null })
+      setSuccess('ETA cleared.')
+    } catch (err) { setError(err.message) }
+  }
+
+  const openEtaEditor = (incId, existingEta) => {
+    setEtaEditId(incId)
+    if (existingEta) {
+      // pre-fill datetime-local (must be local time "YYYY-MM-DDTHH:MM")
+      const d = new Date(existingEta)
+      const pad = n => String(n).padStart(2, '0')
+      setEtaCustom(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`)
+    } else {
+      setEtaCustom('')
+    }
   }
 
   // ── Team form ─────────────────────────────────────────────────────────────
@@ -606,6 +664,64 @@ export default function ResponseManagement() {
                             {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
                           </div>
                         )}
+
+                        {/* ── ETA ── */}
+                        {(() => {
+                          const etaFmt = formatEta(inc.eta)
+                          const editing = etaEditId === inc.id
+                          return (
+                            <div className={s.etaSection}>
+                              <div className={s.etaRow}>
+                                <Clock size={12} style={{ color: etaFmt ? etaFmt.color : '#94a3b8', flexShrink: 0 }} />
+                                <span className={s.etaLabel}>ETA:</span>
+                                {etaFmt ? (
+                                  <>
+                                    <span className={s.etaValue} style={{ color: etaFmt.color }}>
+                                      {etaFmt.label}
+                                    </span>
+                                    <button className={s.etaEditBtn} onClick={() => openEtaEditor(inc.id, inc.eta)}>Edit</button>
+                                    <button className={s.etaClearBtn} onClick={() => handleClearEta(inc.id)} title="Clear ETA"><X size={10} /></button>
+                                  </>
+                                ) : (
+                                  <button className={s.etaSetBtn} onClick={() => openEtaEditor(inc.id, null)}>Set ETA</button>
+                                )}
+                              </div>
+                              {editing && (
+                                <div className={s.etaEditor}>
+                                  <div className={s.etaPresets}>
+                                    {ETA_PRESETS.map(preset => (
+                                      <button
+                                        key={preset.label}
+                                        className={s.etaPreset}
+                                        onClick={() => handleSetEta(inc.id, new Date(Date.now() + preset.mins * 60000).toISOString())}
+                                      >
+                                        {preset.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <div className={s.etaCustomRow}>
+                                    <input
+                                      type="datetime-local"
+                                      value={etaCustom}
+                                      onChange={e => setEtaCustom(e.target.value)}
+                                      className={s.etaInput}
+                                    />
+                                    <button
+                                      className={`${p.btn} ${p.btnPrimary} ${p.btnSm}`}
+                                      onClick={() => etaCustom && handleSetEta(inc.id, new Date(etaCustom).toISOString())}
+                                      disabled={!etaCustom}
+                                    >Set</button>
+                                    <button
+                                      className={`${p.btn} ${p.btnOutline} ${p.btnSm}`}
+                                      onClick={() => setEtaEditId(null)}
+                                    >Cancel</button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
+
                         {/* Reassign */}
                         {!isReassigning ? (
                           <button
@@ -713,6 +829,65 @@ export default function ResponseManagement() {
                                 {members.map((name, i) => <span key={i} className={s.memberChip}>{name}</span>)}
                               </div>
                             )}
+
+                            {/* ── ETA (display + edit) ── */}
+                            {(() => {
+                              const etaFmt = formatEta(inc.eta)
+                              const editing = etaEditId === inc.id
+                              return (
+                                <div className={s.etaSection}>
+                                  <div className={s.etaRow}>
+                                    <Clock size={12} style={{ color: etaFmt ? etaFmt.color : '#94a3b8', flexShrink: 0 }} />
+                                    <span className={s.etaLabel}>ETA:</span>
+                                    {etaFmt ? (
+                                      <>
+                                        <span className={s.etaValue} style={{ color: etaFmt.color }}>
+                                          {etaFmt.label}
+                                          {etaFmt.overdue && <span className={s.etaOverdueDot}> !</span>}
+                                        </span>
+                                        <button className={s.etaEditBtn} onClick={() => openEtaEditor(inc.id, inc.eta)}>Edit</button>
+                                        <button className={s.etaClearBtn} onClick={() => handleClearEta(inc.id)} title="Clear ETA"><X size={10} /></button>
+                                      </>
+                                    ) : (
+                                      <button className={s.etaSetBtn} onClick={() => openEtaEditor(inc.id, null)}>Set ETA</button>
+                                    )}
+                                  </div>
+                                  {editing && (
+                                    <div className={s.etaEditor}>
+                                      <div className={s.etaPresets}>
+                                        {ETA_PRESETS.map(preset => (
+                                          <button
+                                            key={preset.label}
+                                            className={s.etaPreset}
+                                            onClick={() => handleSetEta(inc.id, new Date(Date.now() + preset.mins * 60000).toISOString())}
+                                          >
+                                            {preset.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      <div className={s.etaCustomRow}>
+                                        <input
+                                          type="datetime-local"
+                                          value={etaCustom}
+                                          onChange={e => setEtaCustom(e.target.value)}
+                                          className={s.etaInput}
+                                        />
+                                        <button
+                                          className={`${p.btn} ${p.btnPrimary} ${p.btnSm}`}
+                                          onClick={() => etaCustom && handleSetEta(inc.id, new Date(etaCustom).toISOString())}
+                                          disabled={!etaCustom}
+                                        >Set</button>
+                                        <button
+                                          className={`${p.btn} ${p.btnOutline} ${p.btnSm}`}
+                                          onClick={() => setEtaEditId(null)}
+                                        >Cancel</button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })()}
+
                             <div style={{ marginTop: 10 }}>
                               <select
                                 value={inc.status}

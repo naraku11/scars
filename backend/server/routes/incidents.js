@@ -57,7 +57,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = +req.params.id
-    const { title, type, priority, location, description, status, validated, verified, assignedToId } = req.body
+    const { title, type, priority, location, description, status, validated, verified, assignedToId, eta } = req.body
     const fields = [], vals = []
     if (title        !== undefined) { fields.push('title = ?');        vals.push(title) }
     if (type         !== undefined) { fields.push('type = ?');         vals.push(type) }
@@ -68,6 +68,7 @@ router.put('/:id', async (req, res) => {
     if (validated    !== undefined) { fields.push('validated = ?');    vals.push(validated ? 1 : 0) }
     if (verified     !== undefined) { fields.push('verified = ?');     vals.push(verified ? 1 : 0) }
     if (assignedToId !== undefined) { fields.push('assignedToId = ?'); vals.push(assignedToId ? +assignedToId : null) }
+    if (eta          !== undefined) { fields.push('eta = ?');          vals.push(eta ? new Date(eta) : null) }
     if (fields.length) {
       vals.push(id)
       await pool.execute(`UPDATE Incident SET ${fields.join(', ')} WHERE id = ?`, vals)

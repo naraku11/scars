@@ -136,6 +136,7 @@ httpServer.listen(PORT, async () => {
     console.log('   DB       : ✅ connected')
     // Auto-apply schema migrations (idempotent)
     await pool.execute('ALTER TABLE Incident ADD COLUMN IF NOT EXISTS deletedAt DATETIME DEFAULT NULL')
+    await pool.execute('ALTER TABLE Incident ADD COLUMN IF NOT EXISTS eta DATETIME DEFAULT NULL')
     // Ensure Responder is dashboard-only (reset if old seed had response:true)
     await pool.execute(
       `UPDATE \`Role\` SET permissions = ? WHERE name = 'Responder' AND JSON_EXTRACT(permissions, '$.response') = true`,

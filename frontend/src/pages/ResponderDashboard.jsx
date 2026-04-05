@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   AlertTriangle, CheckCircle, Clock, Users, Activity,
   Eye, X, MapPin, User, Tag, Shield,
-  Search, Radio, Inbox, FileText, Calendar, Lock
+  Search, Radio, Inbox, FileText, Calendar, Lock, Timer
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import Header from '../components/Header'
@@ -12,6 +12,21 @@ import s from './RoleDashboard.module.css'
 const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#22c55e', Rejected: '#dc2626' }
 const PRIORITY_COLOR = { Critical: '#dc2626', High: '#f59e0b', Medium: '#3b82f6', Low: '#22c55e' }
 const PRIORITY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 }
+
+function formatEta(eta) {
+  if (!eta) return null
+  const diff = new Date(eta) - Date.now()
+  const mins = Math.round(diff / 60000)
+  if (mins > 60) {
+    const h = Math.floor(mins / 60), m = mins % 60
+    return { label: m > 0 ? `in ${h}h ${m}m` : `in ${h}h`, color: '#16a34a', overdue: false }
+  }
+  if (mins > 0)  return { label: `in ${mins} min`, color: mins <= 10 ? '#d97706' : '#16a34a', overdue: false }
+  if (mins === 0) return { label: 'arriving now',  color: '#16a34a', overdue: false }
+  const over = Math.abs(mins)
+  if (over >= 60) return { label: `overdue ${Math.floor(over / 60)}h`, color: '#dc2626', overdue: true }
+  return { label: `overdue ${over} min`, color: '#dc2626', overdue: true }
+}
 
 function IncidentCard({ inc, myTeamId, onView, onResolve, resolving }) {
   const pc      = PRIORITY_COLOR[inc.priority] ?? '#94a3b8'
@@ -48,6 +63,26 @@ function IncidentCard({ inc, myTeamId, onView, onResolve, resolving }) {
           <span className={s.pill} style={{ background: '#dcfce7', color: '#166534' }}>Your Team</span>
         )}
       </div>
+
+      {/* ETA */}
+      {(() => {
+        const etaFmt = formatEta(inc.eta)
+        if (!etaFmt) return null
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontSize: 11, fontWeight: 700,
+            color: etaFmt.color,
+            background: etaFmt.overdue ? '#fee2e2' : etaFmt.color + '18',
+            borderRadius: 6, padding: '3px 8px',
+            marginBottom: 4,
+          }}>
+            <Timer size={11} style={{ flexShrink: 0 }} />
+            <span>ETA: {etaFmt.label}</span>
+            {etaFmt.overdue && <span style={{ fontWeight: 900 }}>!</span>}
+          </div>
+        )
+      })()}
 
       {/* Reporter + Date */}
       <div className={s.incCardFooter}>
