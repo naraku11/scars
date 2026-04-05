@@ -230,6 +230,21 @@
 }
 .dropClose:hover { color: #1a2e1c; background: #F1F8F2; }
 
+.clearAllBtn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  min-height: unset;
+  transition: color 0.15s, background 0.15s;
+}
+.clearAllBtn:hover { color: #dc2626; background: #fee2e2; }
+
 .dropList {
   max-height: 380px;
   overflow-y: auto;

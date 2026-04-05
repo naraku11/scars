@@ -56,7 +56,10 @@ export function AppProvider({ children }) {
   const [incidents, setIncidents]               = useState([])
   const [deletedIncidents, setDeletedIncidents] = useState([])
   const [notifications, setNotifications]       = useState([])
-  const [incidentAlerts, setIncidentAlerts]     = useState([])   // in-app incident notifications
+  const [incidentAlerts, setIncidentAlerts] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('scars_incident_alerts') || '[]') }
+    catch { return [] }
+  }) // in-app incident notifications — persisted to sessionStorage
   const [backupConfig, setBackupConfig]   = useState({})
   const [systemConfig, setSystemConfig]   = useState({})
   const [loading, setLoading]             = useState(false)
@@ -66,6 +69,11 @@ export function AppProvider({ children }) {
   const teamsRef       = useRef([])
   useEffect(() => { currentUserRef.current = currentUser }, [currentUser])
   useEffect(() => { teamsRef.current = teams }, [teams])
+  // Sync incident alerts to sessionStorage so they survive page refresh
+  useEffect(() => {
+    try { sessionStorage.setItem('scars_incident_alerts', JSON.stringify(incidentAlerts.slice(0, 50))) }
+    catch { /* sessionStorage unavailable */ }
+  }, [incidentAlerts])
 
   // ── Real-time: Socket.io ─────────────────────────────────────────────
   const socketRef = useRef(null)
@@ -246,6 +254,9 @@ export function AppProvider({ children }) {
     const { token, user } = await authApi.login(email, password)
     localStorage.setItem('scars_token', token)
     setCurrentUser(user)
+    // Clear any previous user's in-memory alerts before loading
+    sessionStorage.removeItem('scars_incident_alerts')
+    setIncidentAlerts([])
     await loadAll()
     return user
   }
@@ -254,6 +265,7 @@ export function AppProvider({ children }) {
     setCurrentUser(null)
     setUsers([]); setRoles([]); setTeams([])
     setIncidents([]); setDeletedIncidents([]); setNotifications([])
+    setIncidentAlerts([])
     setSystemConfig({}); setBackupConfig({})
     setInitialized(true)
   }

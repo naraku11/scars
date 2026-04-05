@@ -85,6 +85,36 @@ export default function Header({ title, subtitle }) {
     })
   }
 
+  const handleClearAll = () => {
+    setDismissedIds(prev => {
+      const next = new Set([...prev, ...visible.map(n => n.id)])
+      localStorage.setItem('scars_dismissed_notifs', JSON.stringify([...next]))
+      return next
+    })
+  }
+
+  // Prune stale IDs from localStorage when notification list changes
+  useEffect(() => {
+    if (sorted.length === 0) return
+    const validIds = new Set(sorted.map(n => String(n.id)))
+    setDismissedIds(prev => {
+      const next = new Set([...prev].filter(id => validIds.has(String(id))))
+      if (next.size < prev.size) {
+        localStorage.setItem('scars_dismissed_notifs', JSON.stringify([...next]))
+        return next
+      }
+      return prev
+    })
+    setReadIds(prev => {
+      const next = new Set([...prev].filter(id => validIds.has(String(id))))
+      if (next.size < prev.size) {
+        localStorage.setItem('scars_read_notifs', JSON.stringify([...next]))
+        return next
+      }
+      return prev
+    })
+  }, [sorted.length]) // eslint-disable-line
+
   // Mark all visible as read when panel opens
   const handleOpen = () => {
     setOpen(v => {
@@ -157,9 +187,14 @@ export default function Header({ title, subtitle }) {
               {/* Header */}
               <div className={s.dropHeader}>
                 <span className={s.dropTitle}>Notifications</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {visible.length > 0 && (
-                    <span className={s.dropCount}>{visible.length} total</span>
+                    <>
+                      <span className={s.dropCount}>{visible.length}</span>
+                      <button className={s.clearAllBtn} onClick={handleClearAll}>
+                        Clear all
+                      </button>
+                    </>
                   )}
                   <button className={s.dropClose} onClick={() => setOpen(false)}>
                     <X size={14} />
