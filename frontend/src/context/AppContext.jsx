@@ -311,7 +311,7 @@ export function AppProvider({ children }) {
   // ── Notifications ────────────────────────────────────────────────────
   const sendNotification = async (data) => {
     const n = await notificationsApi.send({ ...data, sentById: currentUser?.id })
-    setNotifications(prev => [n, ...prev])
+    // Don't update state here — socket 'notification:sent' handles it (prevents duplicate)
     return n
   }
   const deleteNotification = async (id) => {
