@@ -23,6 +23,14 @@ const ROLE_HOME = {
   Student:   '/student',
 }
 
+// Role-dashboard routes — only the owning role may access them
+const ROLE_ONLY = {
+  '/dashboard': 'Admin',
+  '/officer':   'Officer',
+  '/responder': 'Responder',
+  '/student':   'Student',
+}
+
 export default function Layout() {
   const { currentUser, initialized, roles } = useApp()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -39,6 +47,12 @@ export default function Layout() {
   // Guard: redirect if user lacks the permission for this route
   const requiredPerm = ROUTE_PERM[location.pathname]
   if (requiredPerm && !perms[requiredPerm]) {
+    return <Navigate to={homePath} replace />
+  }
+
+  // Guard: redirect if user tries to visit another role's dashboard
+  const roleOnly = ROLE_ONLY[location.pathname]
+  if (roleOnly && roleName !== roleOnly) {
     return <Navigate to={homePath} replace />
   }
 
