@@ -154,14 +154,15 @@ export default function ResponderDashboard() {
   const resolved    = myIncidents.filter(i => i.status === 'Resolved').length
   const urgentCount = open + inProgress
 
-  const sortedAll = [...incidents].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  // All Reports: only incidents assigned to the responder's team, newest first
+  const teamReports = [...myIncidents].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   const filteredReports = search.trim()
-    ? sortedAll.filter(i =>
+    ? teamReports.filter(i =>
         [i.title, i.location, i.type,
           typeof i.reportedBy === 'object' ? i.reportedBy?.name : i.reportedBy
         ].some(v => v?.toLowerCase().includes(search.toLowerCase()))
       )
-    : sortedAll.slice(0, 20)
+    : teamReports
 
   const recentNotifs = [...notifications]
     .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
@@ -310,7 +311,7 @@ export default function ResponderDashboard() {
             {filteredReports.length === 0 ? (
               <div className={p.empty}>
                 <FileText size={32} color="#C8E6C9" />
-                No incidents match your search.
+                {search.trim() ? 'No incidents match your search.' : myTeam ? 'No incidents assigned to your team.' : "You're not in a team yet."}
               </div>
             ) : (
               <div className={s.incCardGrid}>
@@ -320,10 +321,10 @@ export default function ResponderDashboard() {
               </div>
             )}
 
-            {!search.trim() && incidents.length > 20 && (
-              <p style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', margin: '14px 0 0', paddingTop: 12, borderTop: '1px solid #f0f7f0' }}>
-                Showing 20 most recent — search to find older reports
-              </p>
+            {filteredReports.length === 0 && !search.trim() && !myTeam && (
+              <div className={p.empty} style={{ marginTop: 8 }}>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>You are not assigned to a team yet.</span>
+              </div>
             )}
           </div>
         )}
