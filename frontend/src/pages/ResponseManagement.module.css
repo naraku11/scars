@@ -1,8 +1,8 @@
 /* ── Assigned Grid ─────────────────────────────────────────────────────────── */
-.assignedGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+/* min() clamps the minimum column width to the container — prevents overflow on narrow screens */
+.assignedGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 12px; }
 
 @media (max-width: 600px) {
-  .assignedGrid { grid-template-columns: 1fr; }
   .teamsRow { flex-direction: column; }
   .teamCard { min-width: unset; }
   .teamsGrid { grid-template-columns: 1fr; }
@@ -21,6 +21,7 @@
   border: 1px solid #e2ede3; border-radius: 12px; padding: 16px;
   background: #fff; transition: box-shadow 0.2s ease, transform 0.2s ease;
   box-shadow: 0 1px 4px rgba(27,94,32,0.06);
+  min-width: 0;
 }
 .assignCard:hover { box-shadow: 0 4px 16px rgba(46,125,50,0.10); transform: translateY(-2px); }
 
@@ -29,16 +30,17 @@
   border-color: #bbf7d0;
 }
 
-.assignCardHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
-.assignTitle { font-size: 13px; font-weight: 700; color: #1a2e1c; line-height: 1.4; }
-.assignMeta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #4a7a52; margin-bottom: 8px; }
+.assignCardHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; min-width: 0; }
+.assignTitle { font-size: 13px; font-weight: 700; color: #1a2e1c; line-height: 1.4; flex: 1; min-width: 0; word-break: break-word; }
+.assignMeta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #4a7a52; margin-bottom: 8px; min-width: 0; word-break: break-word; }
 
 /* ── Team Chips ─────────────────────────────────────────────────────────────── */
 .teamChip {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   background: #E8F5E9; border: 1px solid #A5D6A7; border-radius: 20px;
   padding: 4px 12px; font-size: 12px; color: #1B5E20;
   margin-bottom: 6px; font-weight: 600;
+  max-width: 100%; min-width: 0;
 }
 .teamSpec { color: #4a7a52; }
 .teamStatus { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
@@ -63,7 +65,7 @@
 /* ── Teams Grid (Roster) ────────────────────────────────────────────────────── */
 .teamsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: 14px;
 }
 

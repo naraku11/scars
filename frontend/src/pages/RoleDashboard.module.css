@@ -225,14 +225,11 @@
   line-height: 1.5;
 }
 
-/* Incident card grid — responsive columns */
+/* Incident card grid — responsive columns, no overflow */
 .incCardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 12px;
-}
-@media (max-width: 480px) {
-  .incCardGrid { grid-template-columns: 1fr; }
 }
 
 /* Incident card */
@@ -245,6 +242,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
   transition: box-shadow 0.15s, transform 0.12s;
 }
 .incCard:hover {
@@ -252,18 +250,13 @@
   transform: translateY(-1px);
 }
 
-.incCardTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
 .incCardTitle {
   font-size: 13px;
   font-weight: 700;
   color: #1a2e1c;
   line-height: 1.4;
-  flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }
 .incCardMeta {
   font-size: 11px;
@@ -271,6 +264,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
 }
 .incCardBadges {
   display: flex;
@@ -284,6 +278,24 @@
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
+  min-width: 0;
+}
+.incCardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f7f0;
+  flex-wrap: wrap;
+}
+.resolvedTag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #16a34a;
+  margin-left: auto;
 }
 
 /* Search row in All Reports tab */

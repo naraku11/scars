@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   AlertTriangle, CheckCircle, Clock, Users, Activity,
   Eye, X, MapPin, User, Tag, Shield,
-  Search, Radio, Inbox, FileText, Calendar
+  Search, Radio, Inbox, FileText, Calendar, Lock
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import Header from '../components/Header'
@@ -13,25 +13,33 @@ const STATUS_COLOR   = { Open: '#ef4444', 'In Progress': '#f59e0b', Resolved: '#
 const PRIORITY_COLOR = { Critical: '#dc2626', High: '#f59e0b', Medium: '#3b82f6', Low: '#22c55e' }
 const PRIORITY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 }
 
-function IncidentCard({ inc, myTeamId, onView }) {
-  const pc     = PRIORITY_COLOR[inc.priority] ?? '#94a3b8'
-  const sc     = STATUS_COLOR[inc.status]     ?? '#94a3b8'
-  const teamId = typeof inc.assignedTo === 'object' ? inc.assignedTo?.id : inc.assignedTo
+function IncidentCard({ inc, myTeamId, onView, onResolve, resolving }) {
+  const pc      = PRIORITY_COLOR[inc.priority] ?? '#94a3b8'
+  const sc      = STATUS_COLOR[inc.status]     ?? '#94a3b8'
+  const teamId  = typeof inc.assignedTo === 'object' ? inc.assignedTo?.id : inc.assignedTo
   const isMyTeam = myTeamId && teamId === myTeamId
+
+  // Resolve is available when validated + verified and not already finished
+  const canResolve  = onResolve && inc.validated && inc.verified
+    && inc.status !== 'Resolved' && inc.status !== 'Rejected'
+  const notReady    = onResolve && (!inc.validated || !inc.verified)
+    && inc.status !== 'Resolved' && inc.status !== 'Rejected'
+  const isResolving = resolving === inc.id
+
   return (
     <div className={s.incCard} style={{ borderLeftColor: pc }}>
-      <div className={s.incCardTop}>
-        <span className={s.incCardTitle}>{inc.title}</span>
-        <button className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => onView(inc)}>
-          <Eye size={11} /> View
-        </button>
-      </div>
+      {/* Title */}
+      <div className={s.incCardTitle}>{inc.title}</div>
+
+      {/* Location */}
       <div className={s.incCardMeta}>
         <MapPin size={10} style={{ flexShrink: 0 }} />
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {inc.location}
         </span>
       </div>
+
+      {/* Badges */}
       <div className={s.incCardBadges}>
         <span className={s.pill} style={{ background: pc + '22', color: pc }}>{inc.priority}</span>
         <span className={s.pill} style={{ background: sc + '22', color: sc }}>{inc.status}</span>
@@ -40,22 +48,58 @@ function IncidentCard({ inc, myTeamId, onView }) {
           <span className={s.pill} style={{ background: '#dcfce7', color: '#166534' }}>Your Team</span>
         )}
       </div>
+
+      {/* Reporter + Date */}
       <div className={s.incCardFooter}>
         <User size={10} style={{ flexShrink: 0 }} />
-        <span>{typeof inc.reportedBy === 'object' ? inc.reportedBy?.name : inc.reportedBy || '—'}</span>
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
+          {typeof inc.reportedBy === 'object' ? inc.reportedBy?.name : inc.reportedBy || '—'}
+        </span>
         <span style={{ color: '#e2e8f0', padding: '0 2px' }}>·</span>
         <Calendar size={10} style={{ flexShrink: 0 }} />
         <span>{inc.createdAt ? new Date(inc.createdAt).toLocaleDateString() : '—'}</span>
+      </div>
+
+      {/* Actions */}
+      <div className={s.incCardActions}>
+        <button className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => onView(inc)}>
+          <Eye size={11} /> View Detail
+        </button>
+
+        {canResolve && (
+          <button
+            className={`${p.btn} ${p.btnSuccess} ${p.btnSm}`}
+            onClick={() => onResolve(inc.id)}
+            disabled={isResolving}
+            style={{ marginLeft: 'auto' }}
+          >
+            <CheckCircle size={11} />
+            {isResolving ? 'Resolving…' : 'Resolve'}
+          </button>
+        )}
+
+        {notReady && (
+          <span className={s.resolvedTag} style={{ color: '#94a3b8', marginLeft: 'auto' }}>
+            <Lock size={10} /> Awaiting validation
+          </span>
+        )}
+
+        {inc.status === 'Resolved' && (
+          <span className={s.resolvedTag}>
+            <CheckCircle size={11} /> Resolved
+          </span>
+        )}
       </div>
     </div>
   )
 }
 
 export default function ResponderDashboard() {
-  const { incidents, teams, notifications, currentUser } = useApp()
-  const [tab, setTab]       = useState('assigned')
-  const [search, setSearch] = useState('')
+  const { incidents, teams, notifications, currentUser, updateIncident } = useApp()
+  const [tab, setTab]         = useState('assigned')
+  const [search, setSearch]   = useState('')
   const [viewing, setViewing] = useState(null)
+  const [resolving, setResolving] = useState(null) // incident id being resolved
 
   const userId = currentUser?.id
   const myTeam = teams.find(t =>
@@ -70,9 +114,9 @@ export default function ResponderDashboard() {
     : []
   ).sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9))
 
-  const open       = myIncidents.filter(i => i.status === 'Open').length
-  const inProgress = myIncidents.filter(i => i.status === 'In Progress').length
-  const resolved   = myIncidents.filter(i => i.status === 'Resolved').length
+  const open        = myIncidents.filter(i => i.status === 'Open').length
+  const inProgress  = myIncidents.filter(i => i.status === 'In Progress').length
+  const resolved    = myIncidents.filter(i => i.status === 'Resolved').length
   const urgentCount = open + inProgress
 
   const sortedAll = [...incidents].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -90,6 +134,27 @@ export default function ResponderDashboard() {
 
   const members = myTeam?.members ?? []
 
+  // Sync modal with live incident state
+  const viewingLive = viewing ? (incidents.find(i => i.id === viewing.id) ?? viewing) : null
+
+  const handleResolve = async (id) => {
+    setResolving(id)
+    try {
+      await updateIncident(id, { status: 'Resolved' })
+      // If the resolved incident is currently open in modal, keep it open (live data updates it)
+    } catch (e) {
+      console.error('Resolve failed:', e)
+    } finally {
+      setResolving(null)
+    }
+  }
+
+  // Can the modal incident be resolved?
+  const modalCanResolve = viewingLive &&
+    viewingLive.validated && viewingLive.verified &&
+    viewingLive.status !== 'Resolved' && viewingLive.status !== 'Rejected' &&
+    myIncidents.some(i => i.id === viewingLive.id)
+
   return (
     <div className={p.page}>
       <Header
@@ -101,17 +166,17 @@ export default function ResponderDashboard() {
         {/* ── Stats ── */}
         <div className={p.statsRow}>
           {[
-            { label: 'Assigned',     value: myIncidents.length, sub: myTeam?.name ?? 'no team',  icon: AlertTriangle, bg: '#fee2e2', color: '#dc2626' },
-            { label: 'Open',         value: open,               sub: 'needs response',            icon: Clock,        bg: '#fef3c7', color: '#d97706' },
-            { label: 'In Progress',  value: inProgress,         sub: 'being handled',             icon: Activity,     bg: '#dbeafe', color: '#2563eb' },
-            { label: 'Resolved',     value: resolved,           sub: 'completed',                 icon: CheckCircle,  bg: '#dcfce7', color: '#16a34a' },
+            { label: 'Assigned',    value: myIncidents.length, sub: myTeam?.name ?? 'no team', icon: AlertTriangle, bg: '#fee2e2', color: '#dc2626' },
+            { label: 'Open',        value: open,               sub: 'needs response',           icon: Clock,        bg: '#fef3c7', color: '#d97706' },
+            { label: 'In Progress', value: inProgress,         sub: 'being handled',            icon: Activity,     bg: '#dbeafe', color: '#2563eb' },
+            { label: 'Resolved',    value: resolved,           sub: 'completed',                icon: CheckCircle,  bg: '#dcfce7', color: '#16a34a' },
           ].map(({ label, value, sub, icon: Icon, bg, color }) => (
             <div className={p.statCard} key={label} style={{ '--stat-accent': color }}>
               <div className={p.statIcon} style={{ background: bg }}><Icon size={22} color={color} /></div>
               <div className={p.statInfo}>
                 <div className={p.statValue}>{value}</div>
                 <div className={p.statLabel}>{label}</div>
-                <div className={p.statSub}>{sub}</div>
+                <div className={p.statSub} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</div>
               </div>
             </div>
           ))}
@@ -173,7 +238,14 @@ export default function ResponderDashboard() {
           ) : (
             <div className={s.incCardGrid}>
               {myIncidents.map(inc => (
-                <IncidentCard key={inc.id} inc={inc} myTeamId={myTeam?.id} onView={setViewing} />
+                <IncidentCard
+                  key={inc.id}
+                  inc={inc}
+                  myTeamId={myTeam?.id}
+                  onView={setViewing}
+                  onResolve={handleResolve}
+                  resolving={resolving}
+                />
               ))}
             </div>
           )
@@ -230,7 +302,6 @@ export default function ResponderDashboard() {
               <div className={p.sectionHeader}>
                 <span className={p.sectionTitle}><Shield size={15} /> {myTeam?.name ?? 'My Team'}</span>
               </div>
-
               {myTeam ? (
                 <>
                   <div className={s.teamMeta} style={{ marginBottom: 14 }}>
@@ -245,10 +316,10 @@ export default function ResponderDashboard() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {members.map((m, i) => {
-                      const name    = typeof m === 'object' ? (m.user?.name ?? m.name ?? 'Member') : `Member ${m}`
+                      const name     = typeof m === 'object' ? (m.user?.name ?? m.name ?? 'Member') : `Member ${m}`
                       const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
-                      const isMe    = (typeof m === 'object' ? (m.userId ?? m.user?.id ?? m.id) : m) === userId
-                      const role    = typeof m === 'object' ? (m.user?.role?.name ?? '') : ''
+                      const isMe     = (typeof m === 'object' ? (m.userId ?? m.user?.id ?? m.id) : m) === userId
+                      const role     = typeof m === 'object' ? (m.user?.role?.name ?? '') : ''
                       return (
                         <div key={i} className={s.memberRow}>
                           <div className={s.memberAvatar}>{initials}</div>
@@ -312,21 +383,20 @@ export default function ResponderDashboard() {
 
       </div>
 
-      {/* ── Read-only incident detail modal ── */}
-      {viewing && (
+      {/* ── Incident detail modal ── */}
+      {viewingLive && (
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20, backdropFilter: 'blur(2px)' }}
           onClick={e => e.target === e.currentTarget && setViewing(null)}
         >
           <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 520, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
 
-            {/* Header */}
+            {/* Modal header */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid #e2ede3' }}>
               <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#1a2e1c', lineHeight: 1.3 }}>{viewing.title}</div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#1a2e1c', lineHeight: 1.3 }}>{viewingLive.title}</div>
                 <div style={{ fontSize: 12, color: '#4a7a52', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                  <MapPin size={11} />
-                  {viewing.location}
+                  <MapPin size={11} /> {viewingLive.location}
                 </div>
               </div>
               <button
@@ -337,28 +407,28 @@ export default function ResponderDashboard() {
               </button>
             </div>
 
-            {/* Body */}
+            {/* Modal body */}
             <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
               {/* Badges */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <span className={s.pill} style={{ background: (PRIORITY_COLOR[viewing.priority] ?? '#94a3b8') + '22', color: PRIORITY_COLOR[viewing.priority] ?? '#94a3b8' }}>
-                  {viewing.priority}
+                <span className={s.pill} style={{ background: (PRIORITY_COLOR[viewingLive.priority] ?? '#94a3b8') + '22', color: PRIORITY_COLOR[viewingLive.priority] ?? '#94a3b8' }}>
+                  {viewingLive.priority}
                 </span>
-                <span className={s.pill} style={{ background: (STATUS_COLOR[viewing.status] ?? '#94a3b8') + '22', color: STATUS_COLOR[viewing.status] ?? '#94a3b8' }}>
-                  {viewing.status}
+                <span className={s.pill} style={{ background: (STATUS_COLOR[viewingLive.status] ?? '#94a3b8') + '22', color: STATUS_COLOR[viewingLive.status] ?? '#94a3b8' }}>
+                  {viewingLive.status}
                 </span>
                 <span className={s.pill} style={{ background: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Tag size={10} /> {viewing.type}
+                  <Tag size={10} /> {viewingLive.type}
                 </span>
               </div>
 
               {/* Info grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
                 {[
-                  { icon: User,   label: 'Reported By',  val: typeof viewing.reportedBy === 'object' ? viewing.reportedBy?.name : viewing.reportedBy || '—' },
-                  { icon: Clock,  label: 'Date',          val: viewing.createdAt ? new Date(viewing.createdAt).toLocaleString() : '—' },
-                  { icon: Users,  label: 'Assigned Team', val: viewing.assignedTo ? (typeof viewing.assignedTo === 'object' ? viewing.assignedTo.name : viewing.assignedTo) : 'Unassigned' },
-                  { icon: Shield, label: 'Progress',      val: `${viewing.validated ? '✓' : '✗'} Validated · ${viewing.verified ? '✓' : '✗'} Verified` },
+                  { icon: User,   label: 'Reported By',  val: typeof viewingLive.reportedBy === 'object' ? viewingLive.reportedBy?.name : viewingLive.reportedBy || '—' },
+                  { icon: Clock,  label: 'Date',          val: viewingLive.createdAt ? new Date(viewingLive.createdAt).toLocaleString() : '—' },
+                  { icon: Users,  label: 'Assigned Team', val: viewingLive.assignedTo ? (typeof viewingLive.assignedTo === 'object' ? viewingLive.assignedTo.name : viewingLive.assignedTo) : 'Unassigned' },
+                  { icon: Shield, label: 'Progress',      val: `${viewingLive.validated ? '✓' : '✗'} Validated · ${viewingLive.verified ? '✓' : '✗'} Verified` },
                 ].map(({ icon: Icon, label, val }) => (
                   <div key={label} style={{ background: '#f8fdf8', borderRadius: 8, padding: '10px 12px' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -373,14 +443,32 @@ export default function ResponderDashboard() {
               <div style={{ background: '#f8fdf8', borderRadius: 8, padding: '10px 12px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Description</div>
                 <div style={{ fontSize: 13, color: '#1a2e1c', lineHeight: 1.6 }}>
-                  {viewing.description || <span style={{ color: '#94a3b8' }}>No description provided.</span>}
+                  {viewingLive.description || <span style={{ color: '#94a3b8' }}>No description provided.</span>}
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
-            <div style={{ padding: '12px 20px', borderTop: '1px solid #e2ede3', background: '#f8fdf8', display: 'flex', justifyContent: 'flex-end' }}>
+            {/* Modal footer */}
+            <div style={{ padding: '12px 20px', borderTop: '1px solid #e2ede3', background: '#f8fdf8', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <button className={`${p.btn} ${p.btnOutline}`} onClick={() => setViewing(null)}>Close</button>
+              {modalCanResolve && (
+                <button
+                  className={`${p.btn} ${p.btnSuccess}`}
+                  onClick={async () => {
+                    await handleResolve(viewingLive.id)
+                    setViewing(null)
+                  }}
+                  disabled={resolving === viewingLive.id}
+                >
+                  <CheckCircle size={14} />
+                  {resolving === viewingLive.id ? 'Resolving…' : 'Mark as Resolved'}
+                </button>
+              )}
+              {viewingLive.status === 'Resolved' && (
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <CheckCircle size={14} /> Resolved
+                </span>
+              )}
             </div>
 
           </div>
