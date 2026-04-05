@@ -51,7 +51,7 @@ DELETE FROM \`Role\`;
 INSERT INTO \`Role\` (id, name, description, color, level, permissions) VALUES
   (1, 'Admin',     'Full system access',            '#dc3545', 1, ${json({ incidents: true,  response: true,  notifications: true,  reports: true,  admin: true  })}),
   (2, 'Officer',   'Campus security officer',        '#28a745', 2, ${json({ incidents: true,  response: true,  notifications: false, reports: true,  admin: false })}),
-  (3, 'Responder', 'Handle incident responses',      '#2E7D32', 3, ${json({ incidents: true,  response: true,  notifications: true,  reports: false, admin: false })}),
+  (3, 'Responder', 'Handle incident responses',      '#2E7D32', 3, ${json({ incidents: false, response: false, notifications: false, reports: false, admin: false })}),
   (4, 'Student',   'Student — can report incidents', '#0288D1', 4, ${json({ incidents: true,  response: false, notifications: false, reports: false, admin: false })});
 
 -- ── Users ─────────────────────────────────────────────────────────────────────

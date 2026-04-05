@@ -24,7 +24,7 @@ async function main() {
   const rolesData = [
     { name: 'Admin',     description: 'Full system access',          color: '#dc3545', level: 1, permissions: { incidents: true,  response: true,  notifications: true,  reports: true,  admin: true  } },
     { name: 'Officer',   description: 'Campus security officer',      color: '#28a745', level: 2, permissions: { incidents: true,  response: true,  notifications: false, reports: true,  admin: false } },
-    { name: 'Responder', description: 'Handle incident responses',    color: '#2E7D32', level: 3, permissions: { incidents: true,  response: true,  notifications: true,  reports: false, admin: false } },
+    { name: 'Responder', description: 'Handle incident responses',    color: '#2E7D32', level: 3, permissions: { incidents: false, response: false, notifications: false, reports: false, admin: false } },
     { name: 'Student',   description: 'Student — can report incidents', color: '#0288D1', level: 4, permissions: { incidents: true,  response: false, notifications: false, reports: false, admin: false } },
   ]
 

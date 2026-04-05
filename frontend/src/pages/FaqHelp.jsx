@@ -85,25 +85,25 @@ const FAQ_SECTIONS = [
     ],
   },
   {
-    title: 'Response Management',
+    title: 'Responder Dashboard',
     icon: Users,
-    roles: ['Responder', 'Admin'],
+    roles: ['Responder'],
     items: [
       {
         q: 'How do I see incidents assigned to my team?',
-        a: 'Your Responder Dashboard automatically shows all incidents assigned to your team under "Assigned Incidents". You can also see all recent campus reports in the "All Recent Reports" section.',
+        a: 'Your Responder Dashboard automatically shows all incidents assigned to your team under "Assigned Incidents". Click the "View" button on any row to open a read-only detail panel with the full incident information.',
+      },
+      {
+        q: 'Can I view full incident details?',
+        a: 'Yes. Click the eye (View) button on any incident in either the "Assigned Incidents" or "All Recent Reports" tables to open a read-only detail panel showing title, location, priority, status, description, reporter, assigned team, and workflow state.',
       },
       {
         q: 'Why is the incident status read-only on my dashboard?',
-        a: 'As a Responder, incident status is managed by Officers and Admins through the Response Management page. Your dashboard is view-only so you can monitor your assigned tasks.',
-      },
-      {
-        q: 'Why can\'t I mark an incident as Resolved?',
-        a: 'An incident can only be resolved when it has been validated, verified, and assigned to a team. All three conditions must be met before the "Resolved" status becomes available.',
+        a: 'As a Responder, incident status changes are managed by Officers and Admins. Your dashboard is view-only so you can monitor your assigned tasks without making changes.',
       },
       {
         q: 'What if I\'m not assigned to any team?',
-        a: 'Contact your supervising Officer or Admin. They can assign you to a response team through the Response Management page.',
+        a: 'Contact your supervising Officer or Admin. They can assign you to a response team.',
       },
     ],
   },
@@ -263,9 +263,9 @@ export default function FaqHelp() {
             {role === 'Responder' && (
               <ul style={{ margin: 0, paddingLeft: 20 }}>
                 <li>Check <strong>Assigned Incidents</strong> on your dashboard to see your team's tasks</li>
-                <li>Incident status is <strong>read-only</strong> — updates are managed by Officers and Admins</li>
+                <li>Click <strong>View</strong> on any incident row to open a read-only detail panel</li>
+                <li>Incident status is <strong>read-only</strong> — Officers and Admins manage status changes</li>
                 <li>View <strong>All Recent Reports</strong> to stay informed of all campus activity</li>
-                <li>New incidents trigger a <strong>sound alert</strong> and appear in the bell panel</li>
                 <li>Contact your Officer if you are not yet assigned to a team</li>
               </ul>
             )}

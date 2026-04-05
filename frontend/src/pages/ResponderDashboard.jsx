@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import {
   AlertTriangle, CheckCircle, Clock, Users,
-  Activity, FileText
+  Activity, FileText, Eye, X, MapPin, User, Tag, Shield
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import Header from '../components/Header'
@@ -12,6 +13,7 @@ const PRIORITY_COLOR = { Critical: '#dc2626', High: '#f59e0b', Medium: '#3b82f6'
 
 export default function ResponderDashboard() {
   const { incidents, teams, notifications, currentUser } = useApp()
+  const [viewing, setViewing] = useState(null)
 
   // Find my team — the team that has me as a member
   const userId = currentUser?.id
@@ -84,7 +86,7 @@ export default function ResponderDashboard() {
             <div className={p.tableWrap}>
               <table>
                 <thead><tr>
-                  <th>Incident</th><th>Reported By</th><th>Priority</th><th>Status</th>
+                  <th>Incident</th><th>Reported By</th><th>Priority</th><th>Status</th><th></th>
                 </tr></thead>
                 <tbody>
                   {myIncidents.map(inc => (
@@ -107,6 +109,11 @@ export default function ResponderDashboard() {
                           {inc.status}
                         </span>
                       </td>
+                      <td>
+                        <button className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => setViewing(inc)}>
+                          <Eye size={12} /> View
+                        </button>
+                      </td>
                     </tr>
                   ))}
                   {!myIncidents.length && (
@@ -128,7 +135,7 @@ export default function ResponderDashboard() {
             <div className={p.tableWrap}>
               <table>
                 <thead><tr>
-                  <th>Title</th><th>Reported By</th><th>Type</th><th>Priority</th><th>Location</th><th>Status</th><th>Submitted</th>
+                  <th>Title</th><th>Reported By</th><th>Type</th><th>Priority</th><th>Location</th><th>Status</th><th>Submitted</th><th></th>
                 </tr></thead>
                 <tbody>
                   {allRecentReports.map(inc => (
@@ -151,6 +158,11 @@ export default function ResponderDashboard() {
                       </td>
                       <td style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>
                         {inc.createdAt ? new Date(inc.createdAt).toLocaleString() : '—'}
+                      </td>
+                      <td>
+                        <button className={`${p.btn} ${p.btnOutline} ${p.btnSm}`} onClick={() => setViewing(inc)}>
+                          <Eye size={12} /> View
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -229,6 +241,73 @@ export default function ResponderDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Read-only incident detail modal */}
+      {viewing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20, backdropFilter: 'blur(2px)' }}
+          onClick={e => e.target === e.currentTarget && setViewing(null)}>
+          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 520, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+
+            {/* Modal header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid #e2ede3' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#1a2e1c', lineHeight: 1.3 }}>{viewing.title}</div>
+                <div style={{ fontSize: 12, color: '#4a7a52', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  <MapPin size={11} /> {viewing.location}
+                </div>
+              </div>
+              <button onClick={() => setViewing(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4, borderRadius: 6, display: 'flex' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+
+              {/* Badges */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+                <span className={s.pill} style={{ background: PRIORITY_COLOR[viewing.priority] + '22', color: PRIORITY_COLOR[viewing.priority] }}>{viewing.priority}</span>
+                <span className={s.pill} style={{ background: STATUS_COLOR[viewing.status] + '22', color: STATUS_COLOR[viewing.status] }}>{viewing.status}</span>
+                <span className={s.pill} style={{ background: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Tag size={10} /> {viewing.type}
+                </span>
+              </div>
+
+              {/* Info grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                {[
+                  { icon: User, label: 'Reported By', val: typeof viewing.reportedBy === 'object' ? viewing.reportedBy?.name : viewing.reportedBy || '—' },
+                  { icon: Clock, label: 'Date', val: viewing.createdAt ? new Date(viewing.createdAt).toLocaleString() : '—' },
+                  { icon: Users, label: 'Assigned Team', val: viewing.assignedTo ? (typeof viewing.assignedTo === 'object' ? viewing.assignedTo.name : viewing.assignedTo) : 'Unassigned' },
+                  { icon: Shield, label: 'Progress', val: `${viewing.validated ? '✓' : '✗'} Validated · ${viewing.verified ? '✓' : '✗'} Verified` },
+                ].map(({ icon: Icon, label, val }) => (
+                  <div key={label} style={{ background: '#f8fdf8', borderRadius: 8, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <Icon size={10} /> {label}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2e1c' }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Description */}
+              <div style={{ background: '#f8fdf8', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Description</div>
+                <div style={{ fontSize: 13, color: '#1a2e1c', lineHeight: 1.6 }}>
+                  {viewing.description || <span style={{ color: '#94a3b8' }}>No description provided.</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '12px 20px', borderTop: '1px solid #e2ede3', background: '#f8fdf8', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className={`${p.btn} ${p.btnOutline}`} onClick={() => setViewing(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
