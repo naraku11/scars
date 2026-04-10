@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { io as socketIo } from 'socket.io-client'
+import useSWR from 'swr'
 import {
   authApi, usersApi, rolesApi, teamsApi,
   incidentsApi, notificationsApi, adminApi, profileApi,
@@ -13,7 +14,6 @@ function playIncidentSound(priority) {
     const AudioCtx = window.AudioContext || window.webkitAudioContext
     if (!AudioCtx) return
     const ctx = new AudioCtx()
-    // Pattern: array of { freq (Hz), dur (s) }. freq=0 = silence gap.
     const patterns = {
       Critical: [
         { freq: 880, dur: 0.12 }, { freq: 0, dur: 0.04 },
@@ -48,46 +48,142 @@ function playIncidentSound(priority) {
   } catch { /* AudioContext unavailable */ }
 }
 
+// ── SWR fetcher — stable, defined outside component ─────────────────────────
+async function fetchAllData() {
+  const [users, roles, teams, incidents, deletedIncidents, notifications, systemConfig, backupConfig] =
+    await Promise.all([
+      usersApi.list(),
+      rolesApi.list(),
+      teamsApi.list(),
+      incidentsApi.list(),
+      incidentsApi.listDeleted(),
+      notificationsApi.list(),
+      adminApi.getSystemConfig(),
+      adminApi.getBackupConfig(),
+    ])
+  return { users, roles, teams, incidents, deletedIncidents, notifications, systemConfig, backupConfig }
+}
+
+const MIN_POLL_MS  = 5_000
+const MAX_POLL_MS  = 60_000
+const BACKOFF_MULT = 1.5
+
+// ── Provider ─────────────────────────────────────────────────────────────────
 export function AppProvider({ children }) {
-  const [currentUser, setCurrentUser]     = useState(null)
-  const [users, setUsers]                 = useState([])
-  const [roles, setRoles]                 = useState([])
-  const [teams, setTeams]                 = useState([])
+  const [currentUser, setCurrentUser]           = useState(null)
+  const [users, setUsers]                       = useState([])
+  const [roles, setRoles]                       = useState([])
+  const [teams, setTeams]                       = useState([])
   const [incidents, setIncidents]               = useState([])
   const [deletedIncidents, setDeletedIncidents] = useState([])
   const [notifications, setNotifications]       = useState([])
-  const [incidentAlerts, setIncidentAlerts] = useState(() => {
+  const [incidentAlerts, setIncidentAlerts]     = useState(() => {
     try { return JSON.parse(sessionStorage.getItem('scars_incident_alerts') || '[]') }
     catch { return [] }
-  }) // in-app incident notifications — persisted to sessionStorage
-  const [backupConfig, setBackupConfig]   = useState({})
-  const [systemConfig, setSystemConfig]   = useState({})
-  const [loading, setLoading]             = useState(false)
-  const [initialized, setInitialized]     = useState(false)
+  })
+  const [backupConfig, setBackupConfig]         = useState({})
+  const [systemConfig, setSystemConfig]         = useState({})
+  const [loading, setLoading]                   = useState(false)
+  const [initialized, setInitialized]           = useState(false)
+
+  // SWR control: null = unauthenticated (SWR suspended); string = fetch active
+  const [swrKey, setSwrKey]         = useState(null)
+  // pollInterval: 0 = socket up (SWR polling disabled); > 0 = adaptive fallback
+  const [pollInterval, setPollInterval] = useState(0)
 
   const currentUserRef = useRef(null)
   const teamsRef       = useRef([])
+  const socketUpRef    = useRef(false)   // true while socket is connected
+  const dataHashRef    = useRef('')       // detects whether data actually changed
+  const revalidateRef  = useRef(null)    // SWR mutate — stable ref for socket handlers
+  const socketRef      = useRef(null)
+
   useEffect(() => { currentUserRef.current = currentUser }, [currentUser])
   useEffect(() => { teamsRef.current = teams }, [teams])
-  // Sync incident alerts to sessionStorage so they survive page refresh
+
+  // Persist in-app alerts across page refresh
   useEffect(() => {
     try { sessionStorage.setItem('scars_incident_alerts', JSON.stringify(incidentAlerts.slice(0, 50))) }
     catch { /* sessionStorage unavailable */ }
   }, [incidentAlerts])
 
-  // ── Real-time: Socket.io ─────────────────────────────────────────────
-  const socketRef = useRef(null)
+  // ── SWR: smart sync with Page Visibility API + adaptive backoff ──────────
+  const { mutate: revalidate } = useSWR(
+    swrKey,        // null = suspended
+    fetchAllData,
+    {
+      revalidateOnFocus:    true,         // Page Visibility API — SWR built-in; resumes on tab focus
+      refreshWhenHidden:    false,        // Pause polling when tab is hidden
+      revalidateOnReconnect: true,        // Re-fetch on network reconnect
+      refreshInterval:      pollInterval, // 0 = off (socket up); > 0 = adaptive fallback
+      dedupingInterval:     3_000,
+      onSuccess(data) {
+        if (!data) return
+        // Compute a lightweight hash to detect real changes
+        const hash = [
+          data.incidents.length,
+          data.incidents[0]?.updatedAt ?? '',
+          data.notifications.length,
+          data.users.length,
+        ].join('|')
+        const changed = hash !== dataHashRef.current
+        dataHashRef.current = hash
 
+        setUsers(data.users)
+        setRoles(data.roles)
+        setTeams(data.teams)
+        setIncidents(data.incidents)
+        setDeletedIncidents(data.deletedIncidents)
+        setNotifications(data.notifications)
+        setSystemConfig(data.systemConfig)
+        setBackupConfig(data.backupConfig)
+        setInitialized(true)
+        setLoading(false)
+
+        // Adaptive backoff: reset to MIN on change; increase slowly when idle
+        if (!socketUpRef.current) {
+          setPollInterval(prev => {
+            const base = prev || MIN_POLL_MS
+            return changed
+              ? MIN_POLL_MS
+              : Math.min(Math.ceil(base * BACKOFF_MULT), MAX_POLL_MS)
+          })
+        }
+      },
+      onError() {
+        setLoading(false)
+        if (!socketUpRef.current) {
+          setPollInterval(prev => Math.min((prev || MIN_POLL_MS) * 2, MAX_POLL_MS))
+        }
+      },
+    }
+  )
+
+  // Keep revalidate accessible in socket handlers without stale closures
+  useEffect(() => { revalidateRef.current = revalidate }, [revalidate])
+
+  // ── Real-time: Socket.io — all handlers named for proper cleanup ─────────
   useEffect(() => {
-    // polling first → more reliable on Hostinger shared hosting (upgrades to websocket when available)
     const socket = socketIo({ path: '/socket.io', transports: ['polling', 'websocket'] })
     socketRef.current = socket
 
+    // Connection lifecycle — drives pollInterval
+    const onConnect = () => {
+      socketUpRef.current = true
+      setPollInterval(0)           // disable SWR polling; socket takes over
+      revalidateRef.current?.()   // immediate sync on (re)connect
+    }
+    const onDisconnect = () => {
+      socketUpRef.current = false
+      setPollInterval(MIN_POLL_MS) // start adaptive fallback polling
+    }
+    socket.on('connect', onConnect)
+    socket.on('disconnect', onDisconnect)
+
     // Incidents
-    socket.on('incident:created', (inc) => {
+    const onIncidentCreated = (inc) => {
       setIncidents(prev => prev.some(i => i.id === inc.id) ? prev : [inc, ...prev])
-      // Push as in-app alert notification for all roles except Student
-      const u = currentUserRef.current
+      const u  = currentUserRef.current
       const rn = typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '')
       if (rn !== 'Student') {
         const alertType = inc.priority === 'Critical' ? 'Emergency'
@@ -104,14 +200,14 @@ export function AppProvider({ children }) {
         }, ...prev.slice(0, 49)])
         playIncidentSound(inc.priority)
       }
-    })
-    socket.on('incident:updated', (inc) => {
+    }
+    const onIncidentUpdated = (inc) => {
       setIncidents(prev => {
         const old = prev.find(i => i.id === inc.id)
         const u  = currentUserRef.current
         const rn = typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '')
 
-        // Response alert: assignment change → notify Responders whose team was assigned
+        // Responder: alert when their team is assigned
         if (rn === 'Responder' && inc.assignedTo) {
           const newTeamId = typeof inc.assignedTo === 'object' ? inc.assignedTo.id : inc.assignedTo
           const oldTeamId = old?.assignedTo
@@ -140,7 +236,7 @@ export function AppProvider({ children }) {
           }
         }
 
-        // Response alert: status change → notify Admin and Officer
+        // Admin / Officer: alert on status change
         if ((rn === 'Admin' || rn === 'Officer') && old && old.status !== inc.status) {
           setIncidentAlerts(p => [{
             id:         `status-${inc.id}-${Date.now()}`,
@@ -155,114 +251,118 @@ export function AppProvider({ children }) {
 
         return prev.map(i => i.id === inc.id ? inc : i)
       })
-    })
-    socket.on('incident:deleted', ({ id, incident }) => {
+    }
+    const onIncidentDeleted = ({ id, incident }) => {
       setIncidents(prev => prev.filter(i => i.id !== id))
       if (incident) setDeletedIncidents(prev => prev.some(i => i.id === id) ? prev : [incident, ...prev])
-    })
-    socket.on('incident:restored', (incident) => {
+    }
+    const onIncidentRestored = (incident) => {
       setDeletedIncidents(prev => prev.filter(i => i.id !== incident.id))
       setIncidents(prev => prev.some(i => i.id === incident.id) ? prev : [incident, ...prev])
-    })
+    }
+    socket.on('incident:created', onIncidentCreated)
+    socket.on('incident:updated', onIncidentUpdated)
+    socket.on('incident:deleted', onIncidentDeleted)
+    socket.on('incident:restored', onIncidentRestored)
 
     // Users
-    socket.on('user:created', (user) =>
+    const onUserCreated = (user) =>
       setUsers(prev => prev.some(u => u.id === user.id) ? prev : [...prev, user])
-    )
-    socket.on('user:updated', (user) => {
+    const onUserUpdated = (user) => {
       setUsers(prev => prev.map(u => u.id === user.id ? user : u))
       setCurrentUser(prev => prev?.id === user.id ? { ...prev, ...user } : prev)
-    })
-    socket.on('user:deleted', ({ id }) =>
+    }
+    const onUserDeleted = ({ id }) =>
       setUsers(prev => prev.filter(u => u.id !== id))
-    )
+    socket.on('user:created', onUserCreated)
+    socket.on('user:updated', onUserUpdated)
+    socket.on('user:deleted', onUserDeleted)
 
     // Notifications
-    socket.on('notification:sent', (n) =>
+    const onNotificationSent = (n) =>
       setNotifications(prev => prev.some(x => x.id === n.id) ? prev : [n, ...prev])
-    )
-    socket.on('notification:deleted', ({ id }) =>
+    const onNotificationDeleted = ({ id }) =>
       setNotifications(prev => prev.filter(n => n.id !== id))
-    )
+    socket.on('notification:sent', onNotificationSent)
+    socket.on('notification:deleted', onNotificationDeleted)
 
     // Teams
-    socket.on('team:updated', (team) =>
+    const onTeamUpdated = (team) =>
       setTeams(prev => prev.some(t => t.id === team.id)
         ? prev.map(t => t.id === team.id ? team : t)
         : [...prev, team]
       )
-    )
-    socket.on('team:deleted', ({ id }) =>
+    const onTeamDeleted = ({ id }) =>
       setTeams(prev => prev.filter(t => t.id !== id))
-    )
+    socket.on('team:updated', onTeamUpdated)
+    socket.on('team:deleted', onTeamDeleted)
 
     // Roles
-    socket.on('role:updated', (role) =>
+    const onRoleUpdated = (role) =>
       setRoles(prev => prev.some(r => r.id === role.id)
         ? prev.map(r => r.id === role.id ? role : r)
         : [...prev, role].sort((a, b) => a.level - b.level)
       )
-    )
-    socket.on('role:deleted', ({ id }) =>
+    const onRoleDeleted = ({ id }) =>
       setRoles(prev => prev.filter(r => r.id !== id))
-    )
+    socket.on('role:updated', onRoleUpdated)
+    socket.on('role:deleted', onRoleDeleted)
 
-    return () => socket.disconnect()
-  }, []) // eslint-disable-line
-
-  // ── Bootstrap: restore session & load all data ──────────────────────
-  const loadAll = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [u, r, t, inc, deleted, notif, sys, bak] = await Promise.all([
-        usersApi.list(),
-        rolesApi.list(),
-        teamsApi.list(),
-        incidentsApi.list(),
-        incidentsApi.listDeleted(),
-        notificationsApi.list(),
-        adminApi.getSystemConfig(),
-        adminApi.getBackupConfig(),
-      ])
-      setUsers(u)
-      setRoles(r)
-      setTeams(t)
-      setIncidents(inc)
-      setDeletedIncidents(deleted)
-      setNotifications(notif)
-      setSystemConfig(sys)
-      setBackupConfig(bak)
-    } finally {
-      setLoading(false)
-      setInitialized(true)
+    // Cleanup: remove all named handlers + disconnect
+    return () => {
+      socket.off('connect',    onConnect)
+      socket.off('disconnect', onDisconnect)
+      socket.off('incident:created',  onIncidentCreated)
+      socket.off('incident:updated',  onIncidentUpdated)
+      socket.off('incident:deleted',  onIncidentDeleted)
+      socket.off('incident:restored', onIncidentRestored)
+      socket.off('user:created',  onUserCreated)
+      socket.off('user:updated',  onUserUpdated)
+      socket.off('user:deleted',  onUserDeleted)
+      socket.off('notification:sent',    onNotificationSent)
+      socket.off('notification:deleted', onNotificationDeleted)
+      socket.off('team:updated', onTeamUpdated)
+      socket.off('team:deleted', onTeamDeleted)
+      socket.off('role:updated', onRoleUpdated)
+      socket.off('role:deleted', onRoleDeleted)
+      socket.disconnect()
     }
   }, [])
 
+  // ── Bootstrap: restore session on mount ──────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('scars_token')
     if (!token) { setInitialized(true); return }
     authApi.me()
-      .then(user => { setCurrentUser(user); return loadAll() })
+      .then(user => {
+        setCurrentUser(user)
+        setLoading(true)
+        setSwrKey('app-data')   // activates SWR to load all data
+      })
       .catch(() => {
         localStorage.removeItem('scars_token')
         setInitialized(true)
       })
-  }, [loadAll])
+  }, [])
 
-  // ── Auth ─────────────────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────────────
   const login = async (email, password) => {
     const { token, user } = await authApi.login(email, password)
     localStorage.setItem('scars_token', token)
     setCurrentUser(user)
-    // Clear any previous user's in-memory alerts before loading
     sessionStorage.removeItem('scars_incident_alerts')
     setIncidentAlerts([])
-    await loadAll()
+    setLoading(true)
+    setSwrKey('app-data')   // activates SWR — onSuccess sets initialized + all state
     return user
   }
+
   const logout = () => {
     localStorage.removeItem('scars_token')
     setCurrentUser(null)
+    setSwrKey(null)          // suspends SWR
+    setPollInterval(0)
+    dataHashRef.current = ''
     setUsers([]); setRoles([]); setTeams([])
     setIncidents([]); setDeletedIncidents([]); setNotifications([])
     setIncidentAlerts([])
@@ -270,11 +370,10 @@ export function AppProvider({ children }) {
     setInitialized(true)
   }
 
-  // ── Incidents ────────────────────────────────────────────────────────
+  // ── Incidents ─────────────────────────────────────────────────────────────
   const addIncident = async (data) => {
     const inc = await incidentsApi.create({ ...data, reportedById: currentUser?.id })
-    // Don't add to state here — the socket 'incident:created' event handles it
-    // to avoid duplicate entries caused by a race between HTTP response and socket
+    // State updated via socket 'incident:created' to prevent duplicate entries
     return inc
   }
   const updateIncident = async (id, data) => {
@@ -308,10 +407,10 @@ export function AppProvider({ children }) {
     setIncidents(prev => prev.map(i => i.id === id ? inc : i))
   }
 
-  // ── Notifications ────────────────────────────────────────────────────
+  // ── Notifications ─────────────────────────────────────────────────────────
   const sendNotification = async (data) => {
     const n = await notificationsApi.send({ ...data, sentById: currentUser?.id })
-    // Don't update state here — socket 'notification:sent' handles it (prevents duplicate)
+    // State updated via socket 'notification:sent' to prevent duplicate
     return n
   }
   const deleteNotification = async (id) => {
@@ -324,7 +423,7 @@ export function AppProvider({ children }) {
     setNotifications(prev => prev.filter(n => !idSet.has(n.id)))
   }
 
-  // ── Users ────────────────────────────────────────────────────────────
+  // ── Users ─────────────────────────────────────────────────────────────────
   const addUser = async (data) => {
     const user = await usersApi.create(data)
     setUsers(prev => [...prev, user])
@@ -339,7 +438,7 @@ export function AppProvider({ children }) {
     setUsers(prev => prev.filter(u => u.id !== id))
   }
 
-  // ── Profile ───────────────────────────────────────────────────────────
+  // ── Profile ───────────────────────────────────────────────────────────────
   const updateProfile = async (data) => {
     const user = await profileApi.update(data)
     setCurrentUser(user)
@@ -347,7 +446,7 @@ export function AppProvider({ children }) {
     return user
   }
 
-  // ── Roles ─────────────────────────────────────────────────────────────
+  // ── Roles ─────────────────────────────────────────────────────────────────
   const addRole = async (data) => {
     const role = await rolesApi.create(data)
     setRoles(prev => [...prev, role])
@@ -361,7 +460,7 @@ export function AppProvider({ children }) {
     setRoles(prev => prev.filter(r => r.id !== id))
   }
 
-  // ── Teams ─────────────────────────────────────────────────────────────
+  // ── Teams ─────────────────────────────────────────────────────────────────
   const addTeam = async (data) => {
     const team = await teamsApi.create(data)
     setTeams(prev => [...prev, team])
@@ -375,14 +474,13 @@ export function AppProvider({ children }) {
     setTeams(prev => prev.filter(t => t.id !== id))
   }
 
-  // ── Admin / Config ────────────────────────────────────────────────────
+  // ── Admin / Config ────────────────────────────────────────────────────────
   const saveSystemConfig = async (data) => {
     try {
       const cfg = await adminApi.saveSystemConfig(data)
       setSystemConfig(cfg)
       localStorage.setItem('scars_system_config', JSON.stringify(cfg))
     } catch {
-      // Mock fallback — persist in localStorage
       setSystemConfig(data)
       localStorage.setItem('scars_system_config', JSON.stringify(data))
     }
@@ -407,7 +505,7 @@ export function AppProvider({ children }) {
       addTeam, updateTeam, deleteTeam,
       sendNotification, deleteNotification, deleteNotifications,
       triggerBackup, saveBackupConfig, saveSystemConfig,
-      reload: loadAll,
+      reload: revalidate,
     }}>
       {children}
     </AppContext.Provider>
