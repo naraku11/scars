@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import BrandingManager from './components/BrandingManager'
 import Layout from './components/Layout'
+import Toaster from './components/Toaster'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import UserManagement from './pages/UserManagement'
@@ -20,6 +21,7 @@ export default function App() {
   return (
     <AppProvider>
       <BrandingManager />
+      <Toaster />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />

@@ -5,6 +5,7 @@ import {
   authApi, usersApi, rolesApi, teamsApi,
   incidentsApi, notificationsApi, adminApi, profileApi,
 } from '../services/api'
+import toast from '../services/toast'
 
 const AppContext = createContext()
 
@@ -202,6 +203,13 @@ export function AppProvider({ children }) {
           priority:   inc.priority,
         }, ...prev.slice(0, 49)])
         playIncidentSound(inc.priority)
+        // Toast
+        toast.show({
+          type:    alertType.toLowerCase(),
+          title:   `New Incident — ${inc.priority}`,
+          message: `${inc.title} · ${inc.location}`,
+          duration: inc.priority === 'Critical' ? 8000 : 5000,
+        })
       }
     }
     const onIncidentUpdated = (inc) => {
@@ -235,21 +243,34 @@ export function AppProvider({ children }) {
                 sentAt:     new Date().toISOString(),
               }, ...p.slice(0, 49)])
               playIncidentSound(inc.priority)
+              // Toast
+              toast.alert(`Assigned to ${teamName}`, {
+                message:  `${inc.title} · ${inc.type} at ${inc.location}`,
+                duration: 6000,
+              })
             }
           }
         }
 
         // Admin / Officer: alert on status change
         if ((rn === 'Admin' || rn === 'Officer') && old && old.status !== inc.status) {
+          const isResolved = inc.status === 'Resolved'
           setIncidentAlerts(p => [{
             id:         `status-${inc.id}-${Date.now()}`,
             incidentId: inc.id,
-            type:       inc.status === 'Resolved' ? 'Info' : 'Alert',
+            type:       isResolved ? 'Info' : 'Alert',
             title:      `Incident ${inc.status}`,
             message:    `${inc.title} · status changed to ${inc.status}`,
             target:     'Officers',
             sentAt:     new Date().toISOString(),
           }, ...p.slice(0, 49)])
+          // Toast
+          toast.show({
+            type:    isResolved ? 'success' : 'warning',
+            title:   `Incident ${inc.status}`,
+            message: `${inc.title} · ${inc.location}`,
+            duration: 5000,
+          })
         }
 
         return prev.map(i => i.id === inc.id ? inc : i)
@@ -282,8 +303,22 @@ export function AppProvider({ children }) {
     socket.on('user:deleted', onUserDeleted)
 
     // Notifications
-    const onNotificationSent = (n) =>
+    const onNotificationSent = (n) => {
       setNotifications(prev => prev.some(x => x.id === n.id) ? prev : [n, ...prev])
+      // Show toast for notifications targeted at the current user's role
+      const u  = currentUserRef.current
+      const rn = typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '')
+      const TARGET_MAP = { Admin: 'Admin', Officer: 'Officers', Responder: 'Responders', Student: 'Students' }
+      const myTarget = TARGET_MAP[rn] ?? ''
+      if (n.target === 'All' || n.target === myTarget || (n.target === 'Admin' && rn === 'Admin')) {
+        toast.show({
+          type:    n.type === 'Emergency' ? 'emergency' : n.type === 'Alert' ? 'alert' : 'info',
+          title:   n.title,
+          message: n.message,
+          duration: n.type === 'Emergency' ? 8000 : 5000,
+        })
+      }
+    }
     const onNotificationDeleted = ({ id }) =>
       setNotifications(prev => prev.filter(n => n.id !== id))
     socket.on('notification:sent', onNotificationSent)
