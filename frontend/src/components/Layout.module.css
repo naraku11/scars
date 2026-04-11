@@ -1,8 +1,9 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  background: #f0f4f8;
+  background: var(--c-bg);
   position: relative;
+  transition: background var(--t-base);
 }
 
 .main {
@@ -17,27 +18,23 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 99;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 @media (max-width: 768px) {
   .overlay { display: block; }
 }
 
-/* Page-enter transition — triggered by key change on location */
+/* Page-enter transition */
 .pageEnter {
   display: contents;
-  animation: page-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

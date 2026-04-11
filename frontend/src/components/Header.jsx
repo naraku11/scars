@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Menu, X, CheckCircle, AlertTriangle, Info, Zap, ShieldCheck, ExternalLink, UserCircle, LogOut } from 'lucide-react'
+import { Bell, Menu, X, CheckCircle, AlertTriangle, Info, Zap, ShieldCheck, ExternalLink, UserCircle, LogOut, Sun, Moon } from 'lucide-react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import s from './Header.module.css'
@@ -34,8 +34,17 @@ export default function Header({ title, subtitle }) {
   const ctx = useOutletContext()
   const navigate = useNavigate()
 
-  const [open, setOpen]             = useState(false)
+  const [open, setOpen]               = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [theme, setTheme]             = useState(() => localStorage.getItem('scars_theme') || 'light')
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light'
+    setTheme(next)
+    localStorage.setItem('scars_theme', next)
+    if (next === 'dark') document.documentElement.setAttribute('data-theme', 'dark')
+    else document.documentElement.removeAttribute('data-theme')
+  }
   const [readIds, setReadIds] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('scars_read_notifs') || '[]')) }
     catch { return new Set() }
@@ -270,6 +279,16 @@ export default function Header({ title, subtitle }) {
             </div>
           )}
         </div>
+
+        {/* Dark / Light mode toggle */}
+        <button
+          className={s.themeBtn}
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
 
         <span className={s.date}>
           {new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}

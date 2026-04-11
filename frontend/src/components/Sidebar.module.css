@@ -3,14 +3,14 @@
 .sidebar {
   width: 230px;
   min-width: 230px;
-  background: #1B5E20;
-  color: #fff;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
   display: flex;
   flex-direction: column;
   height: 100vh;
   position: sticky;
   top: 0;
-  transition: transform 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), background var(--t-base);
   z-index: 100;
 }
 
@@ -19,7 +19,7 @@
     position: fixed;
     top: 0; left: 0; bottom: 0;
     transform: translateX(-100%);
-    box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+    box-shadow: 4px 0 32px rgba(0,0,0,0.40);
   }
   .open { transform: translateX(0); }
 }
@@ -30,37 +30,36 @@
   align-items: center;
   gap: 10px;
   padding: 0 16px;
-  height: 70px;
-  background: #145218;
-  border-bottom: 2px solid #C9A227;
+  height: 68px;
+  background: var(--sidebar-logo-bg);
+  border-bottom: 2px solid var(--sidebar-accent);
+  flex-shrink: 0;
 }
 
 .logoBadge {
   width: 38px;
   height: 38px;
-  border-radius: 8px;
-  background: #C9A227;
-  color: #1B5E20;
+  border-radius: var(--r-md);
+  background: var(--c-accent);
+  color: var(--c-primary-dark);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   font-weight: 900;
   overflow: hidden;
+  transition: transform var(--t-fast);
 }
+.logoBadge:hover { transform: scale(1.06); }
 
 .logoImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--r-md);
 }
 
-.logoText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
+.logoText { display: flex; flex-direction: column; min-width: 0; }
 
 .logoName {
   font-size: 15px;
@@ -72,7 +71,7 @@
 
 .logoCampus {
   font-size: 10px;
-  color: #C9A227;
+  color: var(--sidebar-accent);
   font-weight: 600;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -85,11 +84,11 @@
   margin-left: auto;
   background: none;
   border: none;
-  color: #81C784;
+  color: var(--sidebar-text);
   cursor: pointer;
   padding: 8px;
-  border-radius: 4px;
-  transition: color 0.15s;
+  border-radius: var(--r-sm);
+  transition: color var(--t-fast), background var(--t-fast);
   flex-shrink: 0;
   min-width: 36px;
   min-height: 36px;
@@ -97,7 +96,7 @@
   justify-content: center;
   touch-action: manipulation;
 }
-.closeBtn:hover { color: #fff; }
+.closeBtn:hover { color: #fff; background: rgba(255,255,255,0.08); }
 
 @media (max-width: 768px) {
   .closeBtn { display: flex; }
@@ -106,33 +105,36 @@
 /* ── Navigation ── */
 .nav {
   flex: 1;
-  padding: 10px 0;
+  padding: 8px 0;
   overflow-y: auto;
+  scrollbar-width: none;
 }
+.nav::-webkit-scrollbar { display: none; }
 
 .navItem {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 18px;
+  padding: 11px 18px;
   font-size: 13px;
   font-weight: 500;
-  color: #A5D6A7;
+  color: var(--sidebar-text);
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
   border-left: 3px solid transparent;
   min-height: 44px;
   touch-action: manipulation;
+  position: relative;
 }
 
 .navItem:hover {
-  background: #2E7D32;
+  background: var(--sidebar-hover);
   color: #fff;
 }
 
 .active {
-  background: #2E7D32;
+  background: var(--sidebar-active);
   color: #fff;
-  border-left-color: #C9A227;
+  border-left-color: var(--sidebar-accent);
+  font-weight: 600;
 }
-
