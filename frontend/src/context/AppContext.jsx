@@ -189,28 +189,40 @@ export function AppProvider({ children }) {
       setIncidents(prev => prev.some(i => i.id === inc.id) ? prev : [inc, ...prev])
       const u  = currentUserRef.current
       const rn = typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '')
-      if (rn !== 'Student') {
-        const alertType = inc.priority === 'Critical' ? 'Emergency'
-          : inc.priority === 'High' ? 'Alert' : 'Info'
-        setIncidentAlerts(prev => [{
-          id:         `inc-${inc.id}-${Date.now()}`,
-          incidentId: inc.id,
-          type:       alertType,
-          title:      `New Incident: ${inc.title}`,
-          message:    `${inc.type} · ${inc.location} · ${inc.priority} priority`,
-          target:     'All',
-          sentAt:     inc.createdAt || new Date().toISOString(),
-          priority:   inc.priority,
-        }, ...prev.slice(0, 49)])
-        playIncidentSound(inc.priority)
-        // Toast
-        toast.show({
-          type:    alertType.toLowerCase(),
-          title:   `New Incident — ${inc.priority}`,
-          message: `${inc.title} · ${inc.location}`,
-          duration: inc.priority === 'Critical' ? 8000 : 5000,
-        })
+
+      if (rn === 'Student') {
+        // Students only see Critical/High campus incidents as a brief heads-up
+        if (inc.priority === 'Critical' || inc.priority === 'High') {
+          toast.show({
+            type:    inc.priority === 'Critical' ? 'emergency' : 'alert',
+            title:   `Campus Alert — ${inc.priority}`,
+            message: `${inc.type} reported at ${inc.location}`,
+            duration: inc.priority === 'Critical' ? 8000 : 6000,
+          })
+        }
+        return
       }
+
+      // All other roles get full in-app alert + toast
+      const alertType = inc.priority === 'Critical' ? 'Emergency'
+        : inc.priority === 'High' ? 'Alert' : 'Info'
+      setIncidentAlerts(prev => [{
+        id:         `inc-${inc.id}-${Date.now()}`,
+        incidentId: inc.id,
+        type:       alertType,
+        title:      `New Incident: ${inc.title}`,
+        message:    `${inc.type} · ${inc.location} · ${inc.priority} priority`,
+        target:     'All',
+        sentAt:     inc.createdAt || new Date().toISOString(),
+        priority:   inc.priority,
+      }, ...prev.slice(0, 49)])
+      playIncidentSound(inc.priority)
+      toast.show({
+        type:    alertType.toLowerCase(),
+        title:   `New Incident — ${inc.priority}`,
+        message: `${inc.title} · ${inc.location}`,
+        duration: inc.priority === 'Critical' ? 8000 : 5000,
+      })
     }
     const onIncidentUpdated = (inc) => {
       setIncidents(prev => {
@@ -218,59 +230,141 @@ export function AppProvider({ children }) {
         const u  = currentUserRef.current
         const rn = typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '')
 
-        // Responder: alert when their team is assigned
-        if (rn === 'Responder' && inc.assignedTo) {
-          const newTeamId = typeof inc.assignedTo === 'object' ? inc.assignedTo.id : inc.assignedTo
-          const oldTeamId = old?.assignedTo
-            ? (typeof old.assignedTo === 'object' ? old.assignedTo.id : old.assignedTo)
-            : null
-          if (newTeamId !== oldTeamId) {
-            const myTeam = teamsRef.current.find(t =>
-              t.members?.some(m => {
-                const mid = typeof m === 'object' ? (m.userId ?? m.user?.id ?? m.id) : m
-                return mid === u?.id
-              })
-            )
+        const statusChanged     = old && old.status !== inc.status
+        const assignmentChanged = old && (
+          (typeof inc.assignedTo  === 'object' ? inc.assignedTo?.id  : inc.assignedTo) !==
+          (typeof old.assignedTo  === 'object' ? old.assignedTo?.id  : old.assignedTo)
+        )
+        const etaChanged = old && old.eta !== inc.eta
+
+        // ── Admin ────────────────────────────────────────────────
+        if (rn === 'Admin') {
+          if (statusChanged) {
+            const isResolved = inc.status === 'Resolved'
+            setIncidentAlerts(p => [{
+              id: `status-${inc.id}-${Date.now()}`, incidentId: inc.id,
+              type: isResolved ? 'Info' : 'Alert',
+              title: `Incident ${inc.status}`,
+              message: `${inc.title} · status changed to ${inc.status}`,
+              target: 'Officers', sentAt: new Date().toISOString(),
+            }, ...p.slice(0, 49)])
+            toast.show({
+              type:    isResolved ? 'success' : 'warning',
+              title:   `Incident ${inc.status}`,
+              message: `${inc.title} · ${inc.location}`,
+              duration: 5000,
+            })
+          }
+          if (assignmentChanged && inc.assignedTo) {
+            const teamName = typeof inc.assignedTo === 'object' ? inc.assignedTo.name : `Team #${inc.assignedTo}`
+            toast.info(`Assigned to ${teamName}`, {
+              message: `${inc.title} · ${inc.type}`,
+              duration: 4000,
+            })
+          }
+          if (etaChanged && inc.eta) {
+            toast.info('ETA Updated', {
+              message: `${inc.title} · ETA set`,
+              duration: 4000,
+            })
+          }
+        }
+
+        // ── Officer ──────────────────────────────────────────────
+        if (rn === 'Officer') {
+          if (statusChanged) {
+            const isResolved = inc.status === 'Resolved'
+            setIncidentAlerts(p => [{
+              id: `status-${inc.id}-${Date.now()}`, incidentId: inc.id,
+              type: isResolved ? 'Info' : 'Alert',
+              title: `Incident ${inc.status}`,
+              message: `${inc.title} · status changed to ${inc.status}`,
+              target: 'Officers', sentAt: new Date().toISOString(),
+            }, ...p.slice(0, 49)])
+            toast.show({
+              type:    isResolved ? 'success' : 'warning',
+              title:   `Incident ${inc.status}`,
+              message: `${inc.title} · ${inc.location}`,
+              duration: 5000,
+            })
+          }
+          if (assignmentChanged && inc.assignedTo) {
+            const teamName = typeof inc.assignedTo === 'object' ? inc.assignedTo.name : `Team #${inc.assignedTo}`
+            toast.info(`Assigned to ${teamName}`, {
+              message: `${inc.title} · ${inc.type}`,
+              duration: 4000,
+            })
+          }
+        }
+
+        // ── Responder ────────────────────────────────────────────
+        if (rn === 'Responder') {
+          const myTeam = teamsRef.current.find(t =>
+            t.members?.some(m => {
+              const mid = typeof m === 'object' ? (m.userId ?? m.user?.id ?? m.id) : m
+              return mid === u?.id
+            })
+          )
+
+          // New assignment to their team
+          if (assignmentChanged && inc.assignedTo) {
+            const newTeamId = typeof inc.assignedTo === 'object' ? inc.assignedTo.id : inc.assignedTo
             if (myTeam && myTeam.id === newTeamId) {
               const teamName = typeof inc.assignedTo === 'object' ? inc.assignedTo.name : myTeam.name
               setIncidentAlerts(p => [{
-                id:         `assign-${inc.id}-${Date.now()}`,
-                incidentId: inc.id,
-                type:       'Alert',
-                title:      `Incident Assigned to Your Team`,
-                message:    `${inc.title} · ${inc.type} at ${inc.location} assigned to ${teamName}`,
-                target:     'Responders',
-                sentAt:     new Date().toISOString(),
+                id: `assign-${inc.id}-${Date.now()}`, incidentId: inc.id,
+                type: 'Alert', title: 'Incident Assigned to Your Team',
+                message: `${inc.title} · ${inc.type} at ${inc.location} assigned to ${teamName}`,
+                target: 'Responders', sentAt: new Date().toISOString(),
               }, ...p.slice(0, 49)])
               playIncidentSound(inc.priority)
-              // Toast
               toast.alert(`Assigned to ${teamName}`, {
                 message:  `${inc.title} · ${inc.type} at ${inc.location}`,
                 duration: 6000,
               })
             }
           }
+
+          // Status change on their team's incident
+          if (statusChanged) {
+            const curTeamId = typeof inc.assignedTo === 'object' ? inc.assignedTo?.id : inc.assignedTo
+            if (myTeam && myTeam.id === curTeamId) {
+              const isResolved = inc.status === 'Resolved'
+              toast.show({
+                type:    isResolved ? 'success' : 'info',
+                title:   `Incident ${inc.status}`,
+                message: `${inc.title} · ${inc.location}`,
+                duration: 5000,
+              })
+            }
+          }
+
+          // ETA set on their team's incident
+          if (etaChanged && inc.eta) {
+            const curTeamId = typeof inc.assignedTo === 'object' ? inc.assignedTo?.id : inc.assignedTo
+            if (myTeam && myTeam.id === curTeamId) {
+              toast.info('ETA Updated', {
+                message: `${inc.title} · response ETA has been set`,
+                duration: 4000,
+              })
+            }
+          }
         }
 
-        // Admin / Officer: alert on status change
-        if ((rn === 'Admin' || rn === 'Officer') && old && old.status !== inc.status) {
-          const isResolved = inc.status === 'Resolved'
-          setIncidentAlerts(p => [{
-            id:         `status-${inc.id}-${Date.now()}`,
-            incidentId: inc.id,
-            type:       isResolved ? 'Info' : 'Alert',
-            title:      `Incident ${inc.status}`,
-            message:    `${inc.title} · status changed to ${inc.status}`,
-            target:     'Officers',
-            sentAt:     new Date().toISOString(),
-          }, ...p.slice(0, 49)])
-          // Toast
-          toast.show({
-            type:    isResolved ? 'success' : 'warning',
-            title:   `Incident ${inc.status}`,
-            message: `${inc.title} · ${inc.location}`,
-            duration: 5000,
-          })
+        // ── Student ──────────────────────────────────────────────
+        // Notified only when their OWN reported incident changes status
+        if (rn === 'Student' && statusChanged) {
+          const reportedById = typeof inc.reportedBy === 'object' ? inc.reportedBy?.id : inc.reportedBy
+          if (reportedById === u?.id) {
+            const isResolved = inc.status === 'Resolved'
+            const isRejected = inc.status === 'Rejected'
+            toast.show({
+              type:    isResolved ? 'success' : isRejected ? 'error' : 'info',
+              title:   `Your Report: ${inc.status}`,
+              message: `${inc.title} has been ${inc.status.toLowerCase()}`,
+              duration: 7000,
+            })
+          }
         }
 
         return prev.map(i => i.id === inc.id ? inc : i)
@@ -279,10 +373,24 @@ export function AppProvider({ children }) {
     const onIncidentDeleted = ({ id, incident }) => {
       setIncidents(prev => prev.filter(i => i.id !== id))
       if (incident) setDeletedIncidents(prev => prev.some(i => i.id === id) ? prev : [incident, ...prev])
+      const rn = (() => { const u = currentUserRef.current; return typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '') })()
+      if (rn === 'Admin' && incident?.title) {
+        toast.warning(`Incident Archived`, {
+          message: incident.title,
+          duration: 4000,
+        })
+      }
     }
     const onIncidentRestored = (incident) => {
       setDeletedIncidents(prev => prev.filter(i => i.id !== incident.id))
       setIncidents(prev => prev.some(i => i.id === incident.id) ? prev : [incident, ...prev])
+      const rn = (() => { const u = currentUserRef.current; return typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '') })()
+      if (rn === 'Admin') {
+        toast.success(`Incident Restored`, {
+          message: incident.title,
+          duration: 4000,
+        })
+      }
     }
     socket.on('incident:created', onIncidentCreated)
     socket.on('incident:updated', onIncidentUpdated)
@@ -290,11 +398,25 @@ export function AppProvider({ children }) {
     socket.on('incident:restored', onIncidentRestored)
 
     // Users
-    const onUserCreated = (user) =>
+    const onUserCreated = (user) => {
       setUsers(prev => prev.some(u => u.id === user.id) ? prev : [...prev, user])
+      const rn = (() => { const u = currentUserRef.current; return typeof u?.role === 'object' ? u?.role?.name : (u?.role ?? '') })()
+      if (rn === 'Admin') {
+        toast.info(`New account registered`, {
+          message: `${user.name} · ${user.email}`,
+          duration: 4000,
+        })
+      }
+    }
     const onUserUpdated = (user) => {
       setUsers(prev => prev.map(u => u.id === user.id ? user : u))
-      setCurrentUser(prev => prev?.id === user.id ? { ...prev, ...user } : prev)
+      setCurrentUser(prev => {
+        if (prev?.id !== user.id) return prev
+        // Toast only when another admin/system changes the current user's account
+        const isInitiator = false // socket events come from server; no sender id here
+        void isInitiator
+        return { ...prev, ...user }
+      })
     }
     const onUserDeleted = ({ id }) =>
       setUsers(prev => prev.filter(u => u.id !== id))
