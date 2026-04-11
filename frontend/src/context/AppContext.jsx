@@ -11,7 +11,7 @@ const AppContext = createContext()
 // ── Sound alert helper ───────────────────────────────────────────────────────
 function playIncidentSound(priority) {
   try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    const AudioCtx = window.AudioContext || (/** @type {any} */ (window)).webkitAudioContext
     if (!AudioCtx) return
     const ctx = new AudioCtx()
     const patterns = {
@@ -64,7 +64,10 @@ async function fetchAllData() {
   return { users, roles, teams, incidents, deletedIncidents, notifications, systemConfig, backupConfig }
 }
 
-const MIN_POLL_MS  = 5_000
+// Hosting-safe polling limits:
+// fetchAllData fires 8 parallel requests per cycle.
+// At MIN_POLL_MS = 15 000ms → 4 cycles/min × 8 = 32 req/min (< 40 limit).
+const MIN_POLL_MS  = 15_000
 const MAX_POLL_MS  = 60_000
 const BACKOFF_MULT = 1.5
 
